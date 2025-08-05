@@ -10,12 +10,10 @@ interface ChatPanelProps {
   channelId: string;
 }
 
-const welcomeMessages: Record<string, Message> = {
+const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   welcome: {
-    id: 'welcome-1',
     author: 'bot',
     username: 'Echo Game Bot',
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     embed: {
       title: 'Welcome to the Echo Game Bot!',
       description:
@@ -28,32 +26,37 @@ const welcomeMessages: Record<string, Message> = {
     },
   },
   'q-and-a': {
-    id: 'qa-1',
     author: 'bot',
     username: 'Echo Game Bot',
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     text: 'This is the Q&A channel. Ask me anything about the game using the `/ask` command!',
   },
   'build-suggestions': {
-    id: 'build-1',
     author: 'bot',
     username: 'Echo Game Bot',
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     text: 'Looking for a new build? Use `/suggest-build` with your preferred playstyle (e.g., `/suggest-build aggressive mage`).',
   },
   'game-stats': {
-    id: 'stats-1',
     author: 'bot',
     username: 'Echo Game Bot',
-    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     text: 'Use the `/stats` command to see some example real-time game statistics.',
   },
 };
 
+const getTimestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
 export function ChatPanel({ channelId }: ChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([welcomeMessages[channelId]]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const welcomeMessage: Message = {
+      ...welcomeMessages[channelId],
+      id: `${channelId}-1`,
+      timestamp: getTimestamp(),
+    };
+    setMessages([welcomeMessage]);
+  }, [channelId]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -68,7 +71,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
       id: Date.now().toString(),
       author: 'user',
       username: 'PlayerOne',
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: getTimestamp(),
       text: input,
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -78,7 +81,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     const restOfInput = args.join(' ');
     let botResponse: Message | null = null;
     const responseId = (Date.now() + 1).toString();
-    const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const responseTimestamp = getTimestamp();
 
     if (channelId === 'q-and-a' && command === '/ask') {
       const answer = await askQuestionAction({ question: restOfInput });
