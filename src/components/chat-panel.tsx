@@ -21,7 +21,7 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
       fields: [
         { name: '/ask <question>', value: 'Ask anything about the game in #q-and-a.' },
         { name: '/suggest-build <style>', value: 'Get a build suggestion in #build-suggestions.' },
-        { name: '/stats', value: 'View mock game stats in #game-stats.' },
+        { name: '/stats', value: 'View the bot\'s status in #game-stats.' },
       ],
     },
   },
@@ -38,7 +38,7 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   'game-stats': {
     author: 'bot',
     username: 'Death',
-    text: 'Use the `/stats` command to see some example real-time game statistics.',
+    text: 'Use the `/stats` command to see the bot\'s status.',
   },
 };
 
@@ -48,15 +48,23 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [clientTimestamp, setClientTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
-    const welcomeMessage: Message = {
-      ...welcomeMessages[channelId],
-      id: `${channelId}-1`,
-      timestamp: getTimestamp(),
-    };
-    setMessages([welcomeMessage]);
-  }, [channelId]);
+    // Generate timestamp on the client to avoid hydration mismatch
+    setClientTimestamp(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+  }, []);
+
+  useEffect(() => {
+    if (clientTimestamp) {
+      const welcomeMessage: Message = {
+        ...welcomeMessages[channelId],
+        id: `${channelId}-1`,
+        timestamp: clientTimestamp,
+      };
+      setMessages([welcomeMessage]);
+    }
+  }, [channelId, clientTimestamp]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -65,13 +73,13 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
   }, [messages]);
 
   const handleSendMessage = async (input: string) => {
-    if (!input.trim()) return;
+    if (!input.trim() || !clientTimestamp) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       author: 'user',
       username: 'PlayerOne',
-      timestamp: getTimestamp(),
+      timestamp: clientTimestamp,
       text: input,
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -81,7 +89,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     const restOfInput = args.join(' ');
     let botResponse: Message | null = null;
     const responseId = (Date.now() + 1).toString();
-    const responseTimestamp = getTimestamp();
+    const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     if (channelId === 'q-and-a' && command === '/ask') {
       const answer = await askQuestionAction({ question: restOfInput });
@@ -109,10 +117,10 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
       botResponse = {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: {
-          title: 'Real-time Game Statistics',
-          description: 'Here are the current (mocked) stats:',
+          title: 'Bot Status',
+          description: 'Here are the current bot statistics:',
           fields: [
-            { name: 'Players Online', value: '14,582' },
+            { name: 'Status', value: 'Online' },
             { name: 'EU-Central Ping', value: '28ms' },
             { name: 'Active World Events', value: '3' },
           ],
