@@ -13,6 +13,7 @@ import {
 import { getGuildChannels } from '@/ai/flows/get-guild-channels';
 import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
+import { registerGuildCommands } from '@/services/discord-commands';
 
 export async function askQuestionAction(
   input: AnswerGameQuestionsInput
@@ -76,5 +77,16 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     } catch (error) {
         console.error('Error getting bot guilds:', error);
         return [];
+    }
+}
+
+export async function registerCommandsAction(guildId: string): Promise<boolean> {
+    try {
+        await registerGuildCommands(guildId);
+        console.log(`Successfully registered commands for guild ${guildId}`);
+        return true;
+    } catch (error) {
+        console.error(`Error registering commands for guild ${guildId}:`, error);
+        return false;
     }
 }

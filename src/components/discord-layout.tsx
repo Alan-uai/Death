@@ -12,7 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { UserAvatar } from './user-avatar';
-import { getBotStatusAction, getGuildChannelsAction } from '@/app/actions';
+import { getBotStatusAction, getGuildChannelsAction, registerCommandsAction } from '@/app/actions';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import type { DiscordChannel } from '@/services/discord';
 import { Button } from '@/components/ui/button';
@@ -86,10 +86,18 @@ export function DiscordLayout({ guildId, onGoBack }: DiscordLayoutProps) {
             console.error('Error fetching guild info:', error);
         }
     };
+    
+    const registerCommands = async () => {
+        if (!guildId) return;
+        // This is a "fire and forget" call. We don't need to block the UI.
+        // The commands will be available shortly after the panel loads.
+        registerCommandsAction(guildId);
+    };
 
 
     fetchChannels().catch(console.error);
     fetchGuildInfo().catch(console.error);
+    registerCommands().catch(console.error);
 
   }, [guildId]);
 
