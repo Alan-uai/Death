@@ -11,6 +11,7 @@ import {
   type SuggestInGameBuildInput,
 } from '@/ai/flows/suggest-in-game-build';
 import { getGuildChannels } from '@/ai/flows/get-guild-channels';
+import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
 
 export async function askQuestionAction(
@@ -66,4 +67,14 @@ export async function getGuildChannelsAction(
         { id: 'game-stats', name: 'game-stats', type: 0 },
     ];
   }
+}
+
+export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
+    try {
+        const guilds = await getBotGuilds();
+        return guilds;
+    } catch (error) {
+        console.error('Error getting bot guilds:', error);
+        return [];
+    }
 }

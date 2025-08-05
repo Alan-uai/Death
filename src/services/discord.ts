@@ -9,6 +9,15 @@ export const DiscordChannelSchema = z.object({
 });
 export type DiscordChannel = z.infer<typeof DiscordChannelSchema>;
 
+// Zod schema for a Discord guild (server)
+export const DiscordGuildSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    icon: z.string().nullable(),
+});
+export type DiscordGuild = z.infer<typeof DiscordGuildSchema>;
+
+
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
 async function fetchDiscordApi<T>(
@@ -23,6 +32,8 @@ async function fetchDiscordApi<T>(
     headers: {
       Authorization: authHeader,
     },
+     // Add caching to avoid hitting rate limits
+    next: { revalidate: 60 }
   });
 
   if (!response.ok) {
@@ -51,4 +62,19 @@ export async function getGuildChannels(
   );
 
   return channels;
+}
+
+export async function getBotGuilds(): Promise<DiscordGuild[]> {
+    if (!process.env.DISCORD_BOT_TOKEN) {
+        console.error('DISCORD_BOT_TOKEN is not set. Cannot fetch bot guilds.');
+        throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
+    }
+
+    const guilds = await fetchDiscordApi<DiscordGuild[]>(
+        '/users/@me/guilds',
+        process.env.DISCORD_BOT_TOKEN,
+        true // This is a Bot token
+    );
+
+    return guilds;
 }
