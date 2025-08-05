@@ -99,6 +99,7 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
   return (
     <TooltipProvider>
       <div className="flex h-screen w-full text-sm text-muted-foreground">
+        {/* Server Icon Sidebar */}
         <div className="flex flex-col items-center space-y-2 bg-[#202225] p-2">
           <Tooltip>
             <TooltipTrigger>
@@ -119,6 +120,7 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
           </Tooltip>
         </div>
 
+        {/* Channel List and User Panel */}
         <div className="flex w-60 flex-col bg-[#2f3136]">
           <div className="flex h-12 items-center px-4 font-bold text-white shadow-md">
             {guildName}
@@ -134,11 +136,11 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
                   key={channel.id}
                   onClick={() => setActiveChannel(channel.id)}
                   className={cn(
-                    'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-card hover:text-white',
-                    activeChannel === channel.id && 'bg-card text-white'
+                    'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-[#36393f] hover:text-white',
+                    activeChannel === channel.id && 'bg-[#40444b] text-white'
                   )}
                 >
-                  <Hash className="mr-2 h-5 w-5 text-muted-foreground" />
+                  <Hash className="mr-2 h-5 w-5 text-gray-400" />
                   <span className="font-medium">{channel.name}</span>
                 </button>
               ))}
@@ -151,9 +153,9 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
               {channels.voice.map((channel) => (
                 <div
                   key={channel.id}
-                  className='group flex w-full items-center rounded-md px-2 py-1'
+                  className='group flex w-full cursor-not-allowed items-center rounded-md px-2 py-1 text-gray-400'
                 >
-                  <Speaker className="mr-2 h-5 w-5 text-muted-foreground" />
+                  <Speaker className="mr-2 h-5 w-5 text-gray-400" />
                   <span className="font-medium">{channel.name}</span>
                 </div>
               ))}
@@ -176,9 +178,10 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
           </div>
         </div>
 
+        {/* Main Chat Panel */}
         <div className="flex flex-1 flex-col bg-[#36393f]">
-          <div className="flex h-12 items-center border-b border-border px-4 shadow-md">
-            <Hash className="h-6 w-6 text-muted-foreground" />
+          <div className="flex h-12 items-center border-b border-black/20 px-4 shadow-md">
+            <Hash className="h-6 w-6 text-gray-400" />
             <span className="ml-2 font-semibold text-white">{activeChannelName}</span>
           </div>
           <ChatPanel channelId={activeChannel} key={activeChannel} />

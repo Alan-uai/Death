@@ -87,9 +87,10 @@ export default function Home() {
     const inviteUrl = `${BOT_INVITE_BASE_URL}&guild_id=${guildId}&disable_guild_select=true`;
     window.open(inviteUrl, '_blank');
     localStorage.setItem('selected_guild_id', guildId);
+    // Give a moment for the user to complete the invite flow in the new tab
     setTimeout(() => {
         setSelectedGuild(guildId);
-    }, 1500);
+    }, 1500); 
   };
   
   if (selectedGuild) {
@@ -98,19 +99,19 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
-            <Card className="w-full max-w-md bg-card shadow-2xl">
+        <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
+            <Card className="w-full max-w-md bg-[#2f3136] text-white shadow-2xl border-none">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
                        <DiscordLogoIcon className="h-12 w-12 text-white" />
                     </div>
                     <CardTitle className="text-2xl font-bold">Configure Your Discord Bot</CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-400">
                         Login with your Discord account to select a server and configure the bot.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
-                    <Button onClick={handleLogin} className="w-full max-w-xs">
+                    <Button onClick={handleLogin} className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold">
                         Login with Discord
                     </Button>
                 </CardContent>
@@ -120,11 +121,11 @@ export default function Home() {
   }
 
   return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
-          <Card className="w-full max-w-lg bg-card shadow-2xl">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
+          <Card className="w-full max-w-lg bg-[#2f3136] text-white shadow-2xl border-none">
               <CardHeader>
                   <CardTitle>Select a Server</CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-gray-400">
                       Choose a server you manage to invite and configure the bot.
                   </CardDescription>
               </CardHeader>
@@ -132,7 +133,7 @@ export default function Home() {
                   <div className="space-y-2">
                       {guilds.length > 0 ? (
                           guilds.map(guild => (
-                              <div key={guild.id} className="flex items-center justify-between rounded-lg border p-3">
+                              <div key={guild.id} className="flex items-center justify-between rounded-lg bg-[#36393f] p-3">
                                   <div className="flex items-center space-x-3">
                                       {guild.icon ? (
                                         <img src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`} alt={guild.name} className="h-10 w-10 rounded-full" />
@@ -143,13 +144,13 @@ export default function Home() {
                                       )}
                                       <span className="font-medium">{guild.name}</span>
                                   </div>
-                                  <Button onClick={() => handleInvite(guild.id)}>
+                                  <Button onClick={() => handleInvite(guild.id)} className="bg-primary hover:bg-primary/80">
                                       Add Bot
                                   </Button>
                               </div>
                           ))
                       ) : (
-                          <p className="text-muted-foreground">No manageable servers found.</p>
+                          <p className="text-muted-foreground">No manageable servers found. Make sure you are logged into the correct Discord account.</p>
                       )}
                   </div>
               </CardContent>

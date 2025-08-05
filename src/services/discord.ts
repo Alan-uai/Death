@@ -37,20 +37,11 @@ async function fetchDiscordApi<T>(
 export async function getGuildChannels(
   guildId: string
 ): Promise<DiscordChannel[]> {
+  // We must use a bot token to fetch channels for a specific guild.
+  // The user's bearer token from OAuth does not have permission for this.
   if (!process.env.DISCORD_BOT_TOKEN) {
-    console.warn('DISCORD_BOT_TOKEN is not set. Using client-side token for channels.');
-    
-    // Fallback for prototyping: try to use client token if bot token is not available
-    // This has limitations and is not a production approach.
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('discord_access_token') : null;
-    if (accessToken) {
-         return fetchDiscordApi<DiscordChannel[]>(
-            `/guilds/${guildId}/channels`,
-            accessToken,
-            false // This is a Bearer token, not a Bot token
-        );
-    }
-    throw new Error('DISCORD_BOT_TOKEN is not set and no client token is available.');
+    console.error('DISCORD_BOT_TOKEN is not set. Cannot fetch guild channels.');
+    throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
   }
 
   const channels = await fetchDiscordApi<DiscordChannel[]>(
