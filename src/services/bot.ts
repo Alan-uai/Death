@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview This file initializes and manages the Discord bot client,
  * connecting to the Discord Gateway to listen for real-time events.
@@ -23,18 +24,29 @@ const client = new Client({
 });
 
 /**
- * Saves guild information to Firestore.
+ * Saves guild information, including its channel structure, to Firestore.
  * @param guild The Discord guild object.
  */
 async function saveGuildToFirestore(guild: Guild): Promise<void> {
   try {
     const guildRef = db.collection('guilds').doc(guild.id);
+    
+    // Fetch all channels in the guild
+    const channels = await guild.channels.fetch();
+    const channelData = channels.map(channel => ({
+        id: channel.id,
+        name: channel.name,
+        type: channel.type,
+    }));
+
     await guildRef.set({
       id: guild.id,
       name: guild.name,
+      channels: channelData,
       addedAt: new Date(),
     });
-    console.log(`Successfully saved guild ${guild.name} (ID: ${guild.id}) to Firestore.`);
+
+    console.log(`Successfully saved guild ${guild.name} (ID: ${guild.id}) and its channels to Firestore.`);
   } catch (error) {
     console.error(`Failed to save guild ${guild.id} to Firestore:`, error);
   }
