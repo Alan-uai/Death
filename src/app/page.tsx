@@ -91,15 +91,17 @@ export default function Home() {
       const inviteUrl = `${botInviteBaseUrl}&guild_id=${guildId}&disable_guild_select=true`;
       window.open(inviteUrl, '_blank');
       localStorage.setItem('selected_guild_id', guildId);
-      // Give a moment for the user to complete the invite flow in the new tab
-      setTimeout(() => {
-          setSelectedGuild(guildId);
-      }, 1500);
+      setSelectedGuild(guildId);
     }
   };
   
+  const handleGoBack = () => {
+    localStorage.removeItem('selected_guild_id');
+    setSelectedGuild(null);
+  };
+  
   if (selectedGuild) {
-    return <DiscordLayout guildId={selectedGuild} />;
+    return <DiscordLayout guildId={selectedGuild} onGoBack={handleGoBack} />;
   }
 
   if (!isLoggedIn) {

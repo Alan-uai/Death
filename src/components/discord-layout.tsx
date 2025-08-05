@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, Hash, Speaker } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Hash, Speaker } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -15,6 +15,7 @@ import { UserAvatar } from './user-avatar';
 import { getBotStatusAction, getGuildChannelsAction } from '@/app/actions';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import type { DiscordChannel } from '@/services/discord';
+import { Button } from '@/components/ui/button';
 
 
 interface ChannelList {
@@ -24,9 +25,10 @@ interface ChannelList {
 
 interface DiscordLayoutProps {
     guildId: string;
+    onGoBack: () => void;
 }
 
-export function DiscordLayout({ guildId }: DiscordLayoutProps) {
+export function DiscordLayout({ guildId, onGoBack }: DiscordLayoutProps) {
   const [activeChannel, setActiveChannel] = useState('welcome');
   const [channels, setChannels] = useState<ChannelList>({ text: [], voice: [] });
   const [botStatus, setBotStatus] = useState('Connecting...');
@@ -122,9 +124,19 @@ export function DiscordLayout({ guildId }: DiscordLayoutProps) {
 
         {/* Channel List and User Panel */}
         <div className="flex w-60 flex-col bg-[#2f3136]">
-          <div className="flex h-12 items-center px-4 font-bold text-white shadow-md">
-            {guildName}
-          </div>
+          <header className="flex h-12 items-center justify-between px-4 font-bold text-white shadow-md">
+            <span>{guildName}</span>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onGoBack}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                    <p>Select another server</p>
+                </TooltipContent>
+            </Tooltip>
+          </header>
           <div className="flex-1 space-y-2 overflow-y-auto p-2">
             {channels.text.length > 0 && (<div className="space-y-1">
               <button className="flex w-full items-center px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-white">
