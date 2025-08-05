@@ -13,9 +13,9 @@ interface ChatPanelProps {
 const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   welcome: {
     author: 'bot',
-    username: 'Echo Game Bot',
+    username: 'Death',
     embed: {
-      title: 'Welcome to the Echo Game Bot!',
+      title: 'Welcome to Death!',
       description:
         'I can help you with game mechanics, lore, and even suggest builds. Here are some commands you can use in the appropriate channels:',
       fields: [
@@ -27,17 +27,17 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   },
   'q-and-a': {
     author: 'bot',
-    username: 'Echo Game Bot',
+    username: 'Death',
     text: 'This is the Q&A channel. Ask me anything about the game using the `/ask` command!',
   },
   'build-suggestions': {
     author: 'bot',
-    username: 'Echo Game Bot',
+    username: 'Death',
     text: 'Looking for a new build? Use `/suggest-build` with your preferred playstyle (e.g., `/suggest-build aggressive mage`).',
   },
   'game-stats': {
     author: 'bot',
-    username: 'Echo Game Bot',
+    username: 'Death',
     text: 'Use the `/stats` command to see some example real-time game statistics.',
   },
 };
@@ -86,7 +86,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     if (channelId === 'q-and-a' && command === '/ask') {
       const answer = await askQuestionAction({ question: restOfInput });
       botResponse = {
-        id: responseId, author: 'bot', username: 'Echo Game Bot', timestamp: responseTimestamp,
+        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: { title: `Question: ${restOfInput}`, description: answer },
       };
     } else if (channelId === 'build-suggestions' && command === '/suggest-build') {
@@ -95,7 +95,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
         playerPreferences: restOfInput,
       });
       botResponse = {
-        id: responseId, author: 'bot', username: 'Echo Game Bot', timestamp: responseTimestamp,
+        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: {
           title: 'Build Suggestion',
           description: `Based on your preference for a *${restOfInput}* style:`,
@@ -107,7 +107,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
       };
     } else if (channelId === 'game-stats' && command === '/stats') {
       botResponse = {
-        id: responseId, author: 'bot', username: 'Echo Game Bot', timestamp: responseTimestamp,
+        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: {
           title: 'Real-time Game Statistics',
           description: 'Here are the current (mocked) stats:',
@@ -120,7 +120,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
       };
     } else {
         botResponse = {
-            id: responseId, author: 'bot', username: 'Echo Game Bot', timestamp: responseTimestamp,
+            id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
             text: `The command \`${command}\` is not valid for this channel. Please check the welcome message for instructions.`,
         };
     }
@@ -140,7 +140,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
           ))}
           {isLoading && (
             <div className="flex items-center space-x-2 pl-14 text-sm text-muted-foreground">
-              <span className="font-semibold">Echo Game Bot</span> is typing...
+              <span className="font-semibold">Death</span> is typing...
             </div>
           )}
         </div>

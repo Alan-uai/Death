@@ -36,14 +36,14 @@ export function DiscordLayout() {
               </div>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Echo Game Server</p>
+              <p>Death</p>
             </TooltipContent>
           </Tooltip>
         </div>
 
         <div className="flex w-60 flex-col bg-[#2f3136]">
           <div className="flex h-12 items-center px-4 font-bold text-white shadow-md">
-            Echo Game Bot
+            Death
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-2">
             <span className="px-2 text-xs font-semibold uppercase tracking-wider">
