@@ -14,10 +14,6 @@ const commands = [
         },
     ],
   },
-  {
-    name: 'stats',
-    description: 'View the bot\'s current status and statistics.',
-  },
 ];
 
 async function registerGuildCommands(guildId: string): Promise<void> {

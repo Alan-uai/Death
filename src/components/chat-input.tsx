@@ -16,7 +16,7 @@ const placeholders: Record<string, string> = {
     'welcome': 'This channel is read-only.',
     'q-and-a': 'Message with @Death <your question>',
     'build-suggestions': 'Message with /suggest-build <style>',
-    'game-stats': 'Message with /stats',
+    'game-stats': 'This channel is for game statistics.',
 };
 
 

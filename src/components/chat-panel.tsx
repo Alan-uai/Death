@@ -21,7 +21,6 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
       fields: [
         { name: '@Death <question>', value: 'Ask anything about the game in your server.' },
         { name: '/suggest-build <style>', value: 'Get a build suggestion in #build-suggestions.' },
-        { name: '/stats', value: 'View the bot\'s status in #game-stats.' },
       ],
     },
   },
@@ -38,7 +37,7 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   'game-stats': {
     author: 'bot',
     username: 'Death',
-    text: 'Use the `/stats` command to see the bot\'s status.',
+    text: 'This channel is for game statistics.',
   },
 };
 
@@ -102,19 +101,6 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
           fields: [
             { name: 'Suggestion', value: buildSuggestion },
             { name: 'Reasoning', value: reasoning },
-          ],
-        },
-      };
-    } else if (channelId === 'game-stats' && command === '/stats') {
-      botResponse = {
-        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-        embed: {
-          title: 'Bot Status',
-          description: 'Here are the current bot statistics:',
-          fields: [
-            { name: 'Status', value: 'Online' },
-            { name: 'EU-Central Ping', value: '28ms' },
-            { name: 'Active World Events', value: '3' },
           ],
         },
       };
