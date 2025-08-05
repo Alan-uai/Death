@@ -1,25 +1,35 @@
 import * as admin from 'firebase-admin';
 
-let db: admin.firestore.Firestore;
+let db: admin.firestore.Firestore | undefined;
 
-try {
-  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
-  
-  if (serviceAccountString && !admin.apps.length) {
-    const serviceAccount = JSON.parse(serviceAccountString);
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      projectId: 'death-3a297'
-    });
-    console.log('Firebase Admin SDK initialized successfully.');
+function initializeFirebaseAdmin() {
+  if (admin.apps.length) {
+    if (!db) {
+        db = admin.firestore();
+    }
+    return;
   }
-} catch (error) {
-  console.error('Failed to initialize Firebase Admin SDK:', error);
+
+  try {
+    const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+    
+    if (serviceAccountString) {
+      const serviceAccount = JSON.parse(serviceAccountString);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        projectId: serviceAccount.project_id || 'death-3a297' // Fallback project ID
+      });
+      console.log('Firebase Admin SDK initialized successfully.');
+      db = admin.firestore();
+    } else {
+        console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Firebase Admin SDK not initialized.');
+    }
+  } catch (error) {
+    console.error('Failed to initialize Firebase Admin SDK:', error);
+  }
 }
 
-// Only initialize db if the app was initialized
-if (admin.apps.length) {
-    db = admin.firestore();
-}
+// Call the initialization function so it runs when the module is imported.
+initializeFirebaseAdmin();
 
 export { admin, db };
