@@ -11,6 +11,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { UserAvatar } from './user-avatar';
 
 const channels = [
   { id: 'welcome', name: 'welcome', icon: Hash },
@@ -66,11 +67,11 @@ export function DiscordLayout() {
           <div className="flex h-14 items-center bg-[#292b2f] p-2">
              <div className="flex items-center">
               <div className="relative">
-                <UserCircle className="h-9 w-9 text-white" />
+                <UserAvatar username="Death" />
                 <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full border-2 border-[#292b2f] bg-green-500" />
               </div>
               <div className="ml-2">
-                <div className="text-sm font-semibold text-white">PlayerOne</div>
+                <div className="text-sm font-semibold text-white">Death</div>
                 <div className="text-xs text-muted-foreground">Online</div>
               </div>
             </div>
