@@ -1,16 +1,25 @@
 import * as admin from 'firebase-admin';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-  : undefined;
+let db: admin.firestore.Firestore;
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    projectId: 'death-3a297'
-  });
+try {
+  const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
+  
+  if (serviceAccountString && !admin.apps.length) {
+    const serviceAccount = JSON.parse(serviceAccountString);
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      projectId: 'death-3a297'
+    });
+    console.log('Firebase Admin SDK initialized successfully.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Firebase Admin SDK:', error);
 }
 
-const db = admin.firestore();
+// Only initialize db if the app was initialized
+if (admin.apps.length) {
+    db = admin.firestore();
+}
 
 export { admin, db };

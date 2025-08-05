@@ -14,6 +14,7 @@ import { getGuildChannels } from '@/ai/flows/get-guild-channels';
 import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
 import { registerGuildCommands } from '@/services/discord-commands';
+import { db } from '@/lib/firebase-admin';
 
 export async function askQuestionAction(
   input: AnswerGameQuestionsInput
@@ -56,8 +57,20 @@ export async function getGuildChannelsAction(
   guildId: string
 ): Promise<DiscordChannel[]> {
   try {
+    // First, try to get channels from Firestore
+    const guildDocRef = db.collection('guilds').doc(guildId);
+    const guildDoc = await guildDocRef.get();
+
+    if (guildDoc.exists && guildDoc.data()?.channels) {
+      console.log(`[Firestore] Found channels for guild ${guildId} in cache.`);
+      return guildDoc.data()?.channels as DiscordChannel[];
+    }
+    
+    // If not in Firestore, fetch from Discord API as a fallback
+    console.log(`[Discord API] Channels for guild ${guildId} not in Firestore. Fetching from API.`);
     const { channels } = await getGuildChannels({ guildId });
     return channels;
+
   } catch (error) {
     console.error('Error getting guild channels:', error);
     // Return a default structure on error to avoid crashing the UI
@@ -65,7 +78,6 @@ export async function getGuildChannelsAction(
         { id: 'welcome', name: 'welcome', type: 0 },
         { id: 'q-and-a', name: 'q-and-a', type: 0 },
         { id: 'build-suggestions', name: 'build-suggestions', type: 0 },
-        { id: 'game-stats', name: 'game-stats', type: 0 },
     ];
   }
 }
