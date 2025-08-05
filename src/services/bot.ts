@@ -1,10 +1,12 @@
 /**
  * @fileOverview This file initializes and manages the Discord bot client,
  * connecting to the Discord Gateway to listen for real-time events.
+ * It also handles saving guild information to Firestore.
  */
 
-import { Client, Events, GatewayIntentBits } from 'discord.js';
+import { Client, Events, GatewayIntentBits, Guild } from 'discord.js';
 import { registerGuildCommands } from './discord-commands';
+import { db } from '@/lib/firebase-admin'; // Using admin SDK for backend operations
 
 // Ensure necessary environment variables are set
 if (!process.env.DISCORD_BOT_TOKEN) {
@@ -17,9 +19,27 @@ console.log('Initializing Discord Bot...');
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    // Add other intents your bot might need, e.g., GatewayIntentBits.GuildMessages
   ],
 });
+
+/**
+ * Saves guild information to Firestore.
+ * @param guild The Discord guild object.
+ */
+async function saveGuildToFirestore(guild: Guild): Promise<void> {
+  try {
+    const guildRef = db.collection('guilds').doc(guild.id);
+    await guildRef.set({
+      id: guild.id,
+      name: guild.name,
+      addedAt: new Date(),
+    });
+    console.log(`Successfully saved guild ${guild.name} (ID: ${guild.id}) to Firestore.`);
+  } catch (error) {
+    console.error(`Failed to save guild ${guild.id} to Firestore:`, error);
+  }
+}
+
 
 /**
  * Event handler for when the client is ready.
@@ -31,29 +51,31 @@ client.once(Events.ClientReady, (readyClient) => {
 
 /**
  * Event handler for when the bot joins a new guild (server).
- * This is the crucial part that ensures commands are registered automatically.
+ * This is triggered automatically when the bot is added to a server.
  */
 client.on(Events.GuildCreate, async (guild) => {
   console.log(`Bot has been added to a new guild: ${guild.name} (ID: ${guild.id})`);
-  try {
-    await registerGuildCommands(guild.id);
-    console.log(`Successfully registered commands for the new guild: ${guild.id}`);
-  } catch (error) {
-    console.error(`Failed to register commands for new guild ${guild.id}:`, error);
-  }
+  
+  // Perform both actions concurrently
+  await Promise.all([
+    registerGuildCommands(guild.id),
+    saveGuildToFirestore(guild)
+  ]);
 });
 
 /**
  * Logs the bot in using the token from environment variables.
  * This establishes the connection to the Discord Gateway.
  */
-client.login(process.env.DISCORD_BOT_TOKEN)
-  .catch((error) => {
-    console.error('Failed to log in to Discord:', error);
-    // In a real production environment, you might want to handle this more gracefully,
-    // perhaps by attempting to reconnect after a delay.
-  });
+function startBot() {
+  client.login(process.env.DISCORD_BOT_TOKEN)
+    .then(() => console.log('Discord Bot login process initiated.'))
+    .catch((error) => {
+      console.error('Failed to log in to Discord:', error);
+      // In a real production environment, you might want to handle this more gracefully,
+      // perhaps by attempting to reconnect after a delay.
+    });
+}
 
-console.log('Discord Bot login process initiated.');
-
-// We don't need to export anything as this file's purpose is to run the bot client.
+// Start the bot automatically when this module is loaded.
+startBot();
