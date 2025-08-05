@@ -6,7 +6,7 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getBotGuildsAction } from '@/app/actions';
+import { getBotGuildsAction, registerCommandsAction } from '@/app/actions';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -124,12 +124,22 @@ export default function Home() {
   }
   
   useEffect(() => {
-      // Check if we are returning from the invite flow
-      const pendingGuildId = localStorage.getItem('pending_guild_id');
-      if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
-          localStorage.removeItem('pending_guild_id');
-          handleSelect(pendingGuildId);
-      }
+    // Check if we are returning from the invite flow
+    const pendingGuildId = localStorage.getItem('pending_guild_id');
+    if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
+      localStorage.removeItem('pending_guild_id');
+      
+      // Immediately register commands now that we know the bot is in.
+      registerCommandsAction(pendingGuildId).then(success => {
+        if (success) {
+          console.log(`Successfully triggered command registration for guild ${pendingGuildId}`);
+        } else {
+          console.error(`Failed to trigger command registration for guild ${pendingGuildId}`);
+        }
+        // Then, select the guild to move to the dashboard.
+        handleSelect(pendingGuildId);
+      });
+    }
   }, [botGuilds]);
 
 
@@ -137,6 +147,8 @@ export default function Home() {
     localStorage.removeItem('selected_guild_id');
     setSelectedGuild(null);
     setShowInviteMessage(false);
+    // Force a reload to get the latest server list state
+    window.location.reload();
   };
   
   if (selectedGuild) {
@@ -191,7 +203,7 @@ export default function Home() {
                   <CardTitle>Select a Server</CardTitle>
                   <CardDescription className="text-gray-400">
                       {showInviteMessage 
-                        ? 'After adding the bot, reload this page to continue.'
+                        ? 'After adding the bot, please refresh this page to continue.'
                         : "Choose a server to invite the bot to, or select one where it's already present."
                       }
                   </CardDescription>
@@ -215,7 +227,7 @@ export default function Home() {
                                   </div>
                                   {isBotMember ? (
                                     <Button onClick={() => handleSelect(guild.id)} className="bg-green-600 hover:bg-green-700">
-                                      Selecionar
+                                      Select
                                     </Button>
                                   ) : (
                                     <Button onClick={() => handleInvite(guild.id)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
