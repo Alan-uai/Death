@@ -23,6 +23,7 @@ export default function Home() {
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
   const [oauthUrl, setOauthUrl] = useState('');
   const [botInviteBaseUrl, setBotInviteBaseUrl] = useState('');
+  const [showInviteMessage, setShowInviteMessage] = useState(false);
 
   useEffect(() => {
     // This code now runs only on the client
@@ -89,15 +90,18 @@ export default function Home() {
   const handleInvite = (guildId: string) => {
     if (botInviteBaseUrl) {
       const inviteUrl = `${botInviteBaseUrl}&guild_id=${guildId}&disable_guild_select=true`;
-      window.open(inviteUrl, '_blank');
       localStorage.setItem('selected_guild_id', guildId);
-      setSelectedGuild(guildId);
+      window.open(inviteUrl, '_blank');
+      // Don't set selectedGuild here. Let the user complete the flow.
+      // setSelectedGuild(guildId);
+      setShowInviteMessage(true);
     }
   };
   
   const handleGoBack = () => {
     localStorage.removeItem('selected_guild_id');
     setSelectedGuild(null);
+    setShowInviteMessage(false);
   };
   
   if (selectedGuild) {
@@ -133,7 +137,10 @@ export default function Home() {
               <CardHeader>
                   <CardTitle>Select a Server</CardTitle>
                   <CardDescription className="text-gray-400">
-                      Choose a server you manage to invite and configure the bot.
+                      {showInviteMessage 
+                        ? 'After adding the bot, reload this page to continue.'
+                        : "Choose a server you manage to invite and configure the bot."
+                      }
                   </CardDescription>
               </CardHeader>
               <CardContent className="max-h-96 overflow-y-auto">
