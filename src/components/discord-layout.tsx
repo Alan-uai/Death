@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bot, Gamepad2, Hash, UserCircle } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { UserAvatar } from './user-avatar';
+import { getBotStatusAction } from '@/app/actions';
 
 const channels = [
   { id: 'welcome', name: 'welcome', icon: Hash },
@@ -22,6 +23,15 @@ const channels = [
 
 export function DiscordLayout() {
   const [activeChannel, setActiveChannel] = useState('welcome');
+  const [botStatus, setBotStatus] = useState('Connecting...');
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      const status = await getBotStatusAction();
+      setBotStatus(status);
+    };
+    fetchStatus();
+  }, []);
 
   return (
     <TooltipProvider>
@@ -68,11 +78,14 @@ export function DiscordLayout() {
              <div className="flex items-center">
               <div className="relative">
                 <UserAvatar username="Death" />
-                <span className="absolute bottom-0 right-0 block h-3 w-3 rounded-full border-2 border-[#292b2f] bg-green-500" />
+                <span className={cn(
+                  "absolute bottom-0 right-0 block h-3 w-3 rounded-full border-2 border-[#292b2f]",
+                  botStatus === 'Online' ? 'bg-green-500' : 'bg-gray-500',
+                )} />
               </div>
               <div className="ml-2">
                 <div className="text-sm font-semibold text-white">Death</div>
-                <div className="text-xs text-muted-foreground">Online</div>
+                <div className="text-xs text-muted-foreground">{botStatus}</div>
               </div>
             </div>
           </div>

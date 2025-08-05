@@ -5,6 +5,7 @@ import {
   answerGameQuestions,
   type AnswerGameQuestionsInput,
 } from '@/ai/flows/answer-game-questions';
+import { getBotStatus } from '@/ai/flows/get-bot-status';
 import {
   suggestInGameBuild,
   type SuggestInGameBuildInput,
@@ -34,5 +35,17 @@ export async function suggestBuildAction(
       buildSuggestion: 'Could not generate a build suggestion.',
       reasoning: 'An error occurred while processing the request. Please try again.',
     };
+  }
+}
+
+export async function getBotStatusAction(): Promise<string> {
+  try {
+    // For this example, we'll return "Online" if the flow executes successfully.
+    // A real implementation might involve more complex logic to check the bot's heartbeat.
+    await getBotStatus();
+    return 'Online';
+  } catch (error) {
+    console.error('Error getting bot status:', error);
+    return 'Offline';
   }
 }
