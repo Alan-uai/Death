@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import Image from 'next/image';
+import { DiscordLogoIcon } from '@/components/discord-logo-icon';
+
 
 const BOT_INVITE_URL = 'https://discord.com/oauth2/authorize?client_id=1402390773332443177&permissions=8&scope=bot';
 
@@ -29,7 +30,7 @@ export default function Home() {
             <Card className="w-full max-w-md bg-card shadow-2xl">
                 <CardHeader className="text-center">
                     <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
-                       <Image src="/discord-logo.svg" alt="Discord Logo" width={48} height={48} />
+                       <DiscordLogoIcon className="h-12 w-12 text-white" />
                     </div>
                     <CardTitle className="text-2xl font-bold">Invite Death to Your Server</CardTitle>
                     <CardDescription>

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/tooltip';
 import { UserAvatar } from './user-avatar';
 import { getBotStatusAction } from '@/app/actions';
-import Image from 'next/image';
+import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 
 const initialChannels = {
   text: [
@@ -50,7 +50,7 @@ export function DiscordLayout() {
               <div className="group relative">
                 <div className="absolute -left-2 h-10 w-1 rounded-r-full bg-primary transition-all duration-200" />
                 <div className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl bg-primary/20 text-primary transition-all duration-200 group-hover:rounded-2xl">
-                  <Image src="/discord-logo.svg" alt="Server Icon" width={32} height={32} />
+                  <DiscordLogoIcon className="h-8 w-8 text-white" />
                 </div>
               </div>
             </TooltipTrigger>

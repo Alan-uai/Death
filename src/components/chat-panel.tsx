@@ -83,7 +83,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     const responseId = (Date.now() + 1).toString();
     const responseTimestamp = getTimestamp();
 
-    if (command.startsWith('@')) {
+    if (command.startsWith('@Death')) {
       const answer = await askQuestionAction({ question: restOfInput });
       botResponse = {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
