@@ -6,7 +6,6 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getGuildChannelsAction } from '@/app/actions';
 import type { DiscordChannel } from '@/services/discord';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
@@ -64,6 +63,7 @@ export default function Home() {
           });
           if (response.ok) {
             const userGuilds: Guild[] = await response.json();
+            // 0x20 is the MANAGE_GUILD permission
             const manageableGuilds = userGuilds.filter(g => (parseInt(g.permissions) & 0x20) === 0x20);
             setGuilds(manageableGuilds);
           } else {
