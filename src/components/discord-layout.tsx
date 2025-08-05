@@ -12,25 +12,21 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { UserAvatar } from './user-avatar';
-import { getBotStatusAction } from '@/app/actions';
+import { getBotStatusAction, getGuildChannelsAction } from '@/app/actions';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
+import type { DiscordChannel } from '@/services/discord';
 
-const initialChannels = {
-  text: [
-    { id: 'welcome', name: 'welcome' },
-    { id: 'q-and-a', name: 'q-and-a' },
-    { id: 'build-suggestions', name: 'build-suggestions' },
-    { id: 'game-stats', name: 'game-stats' },
-  ],
-  voice: [
-    { id: 'general-voice', name: 'General' },
-    { id: 'gaming-lounge', name: 'Gaming Lounge' },
-  ]
-};
+// This is a mock guild ID. In a real app, you'd get this after the bot joins a server.
+const MOCK_GUILD_ID = '123456789012345678';
 
+interface ChannelList {
+  text: DiscordChannel[];
+  voice: DiscordChannel[];
+}
 
 export function DiscordLayout() {
   const [activeChannel, setActiveChannel] = useState('welcome');
+  const [channels, setChannels] = useState<ChannelList>({ text: [], voice: [] });
   const [botStatus, setBotStatus] = useState('Connecting...');
 
   useEffect(() => {
@@ -39,7 +35,46 @@ export function DiscordLayout() {
       setBotStatus(status);
     };
     fetchStatus();
+
+    const fetchChannels = async () => {
+      // For the prototype, we can't know the actual server ID the user
+      // invited the bot to. We'll use a placeholder and rely on the
+      // bot token being for a server it's already in.
+      // A real implementation would get the guild ID from a webhook
+      // after the bot is invited.
+      const allChannels = await getGuildChannelsAction(MOCK_GUILD_ID);
+      
+      const textChannels = allChannels.filter(c => c.type === 0 && c.name === 'general');
+      const voiceChannels = allChannels.filter(c => c.type === 2);
+      
+      const welcomeChannel: DiscordChannel = { id: 'welcome', name: 'welcome', type: 0 };
+      const qnaChannel = allChannels.find(c => c.name === 'q-and-a') || {id: 'q-and-a', name: 'q-and-a', type: 0};
+      const buildChannel = allChannels.find(c => c.name === 'build-suggestions') || {id: 'build-suggestions', name: 'build-suggestions', type: 0};
+      const statsChannel = allChannels.find(c => c.name === 'game-stats') || {id: 'game-stats', name: 'game-stats', type: 0};
+
+      const finalChannels = {
+        text: [welcomeChannel, qnaChannel, buildChannel, statsChannel, ...textChannels.filter(c => !['q-and-a', 'build-suggestions', 'game-stats'].includes(c.name))],
+        voice: voiceChannels
+      };
+
+      // Set a default active channel if the initial one doesn't exist
+      if (finalChannels.text.length > 0) {
+        setActiveChannel(finalChannels.text[0].id);
+      } else if (finalChannels.voice.length > 0) {
+         setActiveChannel(finalChannels.voice[0].id);
+      }
+      
+      setChannels(finalChannels);
+    };
+
+    fetchChannels().catch(console.error);
+
   }, []);
+
+  const activeChannelName = 
+    channels.text.find(c => c.id === activeChannel)?.name ||
+    channels.voice.find(c => c.id === activeChannel)?.name ||
+    'channel';
 
   return (
     <TooltipProvider>
@@ -65,12 +100,12 @@ export function DiscordLayout() {
             Your Server Name
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-2">
-            <div className="space-y-1">
+            {channels.text.length > 0 && (<div className="space-y-1">
               <button className="flex w-full items-center px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-white">
                 <ChevronDown className="mr-1 h-3 w-3" />
                 Text Channels
               </button>
-              {initialChannels.text.map((channel) => (
+              {channels.text.map((channel) => (
                 <button
                   key={channel.id}
                   onClick={() => setActiveChannel(channel.id)}
@@ -83,13 +118,13 @@ export function DiscordLayout() {
                   <span className="font-medium">{channel.name}</span>
                 </button>
               ))}
-            </div>
-            <div className="space-y-1 pt-2">
+            </div>)}
+            {channels.voice.length > 0 && (<div className="space-y-1 pt-2">
               <button className="flex w-full items-center px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-white">
                 <ChevronDown className="mr-1 h-3 w-3" />
                 Voice Channels
               </button>
-              {initialChannels.voice.map((channel) => (
+              {channels.voice.map((channel) => (
                 <div
                   key={channel.id}
                   className='group flex w-full items-center rounded-md px-2 py-1'
@@ -98,7 +133,7 @@ export function DiscordLayout() {
                   <span className="font-medium">{channel.name}</span>
                 </div>
               ))}
-            </div>
+            </div>)}
           </div>
           <div className="flex h-14 items-center bg-[#292b2f] p-2">
              <div className="flex items-center">
@@ -120,7 +155,7 @@ export function DiscordLayout() {
         <div className="flex flex-1 flex-col bg-[#36393f]">
           <div className="flex h-12 items-center border-b border-border px-4 shadow-md">
             <Hash className="h-6 w-6 text-muted-foreground" />
-            <span className="ml-2 font-semibold text-white">{activeChannel}</span>
+            <span className="ml-2 font-semibold text-white">{activeChannelName}</span>
           </div>
           <ChatPanel channelId={activeChannel} key={activeChannel} />
         </div>

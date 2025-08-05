@@ -10,6 +10,8 @@ import {
   suggestInGameBuild,
   type SuggestInGameBuildInput,
 } from '@/ai/flows/suggest-in-game-build';
+import { getGuildChannels } from '@/ai/flows/get-guild-channels';
+import type { DiscordChannel } from '@/services/discord';
 
 export async function askQuestionAction(
   input: AnswerGameQuestionsInput
@@ -45,5 +47,17 @@ export async function getBotStatusAction(): Promise<string> {
   } catch (error) {
     console.error('Error getting bot status:', error);
     return 'Offline';
+  }
+}
+
+export async function getGuildChannelsAction(
+  guildId: string
+): Promise<DiscordChannel[]> {
+  try {
+    const { channels } = await getGuildChannels({ guildId });
+    return channels;
+  } catch (error) {
+    console.error('Error getting guild channels:', error);
+    return [];
   }
 }
