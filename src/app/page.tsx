@@ -7,28 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getBotGuildsAction, registerCommandsAction } from '@/app/actions';
+import type { DiscordGuild } from '@/services/discord';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 
-interface Guild {
-  id: string;
-  name: string;
-  icon: string | null;
-  permissions: string;
-}
-
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [guilds, setGuilds] = useState<Guild[]>([]);
+  const [guilds, setGuilds] = useState<DiscordGuild[]>([]);
   const [botGuilds, setBotGuilds] = useState<string[]>([]);
-  const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
+  const [selectedGuild, setSelectedGuild] = useState<DiscordGuild | null>(null);
   const [oauthUrl, setOauthUrl] = useState('');
   const [botInviteBaseUrl, setBotInviteBaseUrl] = useState('');
   const [showInviteMessage, setShowInviteMessage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // This code now runs only on the client
     const redirectUri = window.location.origin;
     setOauthUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify%20guilds`);
     setBotInviteBaseUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`);
@@ -39,7 +32,7 @@ export default function Home() {
       const accessToken = params.get('access_token');
       if (accessToken) {
         localStorage.setItem('discord_access_token', accessToken);
-        window.location.hash = ''; // Clear the hash
+        window.location.hash = '';
         setIsLoggedIn(true);
       }
     } else if (localStorage.getItem('discord_access_token')) {
@@ -48,9 +41,9 @@ export default function Home() {
       setIsLoading(false);
     }
     
-    const storedGuild = localStorage.getItem('selected_guild_id');
+    const storedGuild = localStorage.getItem('selected_guild');
     if (storedGuild) {
-        setSelectedGuild(storedGuild);
+        setSelectedGuild(JSON.parse(storedGuild));
     }
 
   }, []);
@@ -66,7 +59,6 @@ export default function Home() {
         }
 
         try {
-          // Fetch user guilds and bot guilds in parallel
           const [userGuildsResponse, botGuildsResponse] = await Promise.all([
             fetch('https://discord.com/api/v10/users/@me/guilds', {
               headers: { Authorization: `Bearer ${token}` },
@@ -75,7 +67,7 @@ export default function Home() {
           ]);
 
           if (userGuildsResponse.ok) {
-            const userGuildsData: Guild[] = await userGuildsResponse.json();
+            const userGuildsData: any[] = await userGuildsResponse.json();
             const manageableGuilds = userGuildsData.filter(g => (parseInt(g.permissions) & 0x20) === 0x20);
             setGuilds(manageableGuilds);
           } else {
@@ -88,7 +80,6 @@ export default function Home() {
 
         } catch (error) {
           console.error('Error fetching initial data:', error);
-          // Still try to show manageable guilds if bot guilds fetch fails
           if (guilds.length === 0) {
              localStorage.removeItem('discord_access_token');
              setIsLoggedIn(false);
@@ -109,50 +100,49 @@ export default function Home() {
     }
   };
   
-  const handleInvite = (guildId: string) => {
+  const handleInvite = (guild: DiscordGuild) => {
     if (botInviteBaseUrl) {
-      const inviteUrl = `${botInviteBaseUrl}&guild_id=${guildId}&disable_guild_select=true`;
-      localStorage.setItem('pending_guild_id', guildId); // Store pending guild
+      const inviteUrl = `${botInviteBaseUrl}&guild_id=${guild.id}&disable_guild_select=true`;
+      localStorage.setItem('pending_guild_id', guild.id);
       window.open(inviteUrl, '_blank');
       setShowInviteMessage(true);
     }
   };
 
-  const handleSelect = (guildId: string) => {
-    localStorage.setItem('selected_guild_id', guildId);
-    setSelectedGuild(guildId);
+  const handleSelect = (guild: DiscordGuild) => {
+    localStorage.setItem('selected_guild', JSON.stringify(guild));
+    setSelectedGuild(guild);
   }
   
   useEffect(() => {
-    // Check if we are returning from the invite flow
     const pendingGuildId = localStorage.getItem('pending_guild_id');
     if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
       localStorage.removeItem('pending_guild_id');
       
-      // Immediately register commands now that we know the bot is in.
       registerCommandsAction(pendingGuildId).then(success => {
         if (success) {
           console.log(`Successfully triggered command registration for guild ${pendingGuildId}`);
         } else {
           console.error(`Failed to trigger command registration for guild ${pendingGuildId}`);
         }
-        // Then, select the guild to move to the dashboard.
-        handleSelect(pendingGuildId);
+        const guild = guilds.find(g => g.id === pendingGuildId);
+        if (guild) {
+          handleSelect(guild);
+        }
       });
     }
-  }, [botGuilds]);
+  }, [botGuilds, guilds]);
 
 
   const handleGoBack = () => {
-    localStorage.removeItem('selected_guild_id');
+    localStorage.removeItem('selected_guild');
     setSelectedGuild(null);
     setShowInviteMessage(false);
-    // Force a reload to get the latest server list state
     window.location.reload();
   };
   
   if (selectedGuild) {
-    return <DiscordLayout guildId={selectedGuild} onGoBack={handleGoBack} />;
+    return <DiscordLayout guild={selectedGuild} onGoBack={handleGoBack} />;
   }
 
   if (isLoading) {
@@ -226,11 +216,11 @@ export default function Home() {
                                       <span className="font-medium">{guild.name}</span>
                                   </div>
                                   {isBotMember ? (
-                                    <Button onClick={() => handleSelect(guild.id)} className="bg-green-600 hover:bg-green-700">
+                                    <Button onClick={() => handleSelect(guild)} className="bg-green-600 hover:bg-green-700">
                                       Select
                                     </Button>
                                   ) : (
-                                    <Button onClick={() => handleInvite(guild.id)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
+                                    <Button onClick={() => handleInvite(guild)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
                                         Add Bot
                                     </Button>
                                   )}
@@ -245,5 +235,4 @@ export default function Home() {
           </Card>
       </main>
   );
-
 }

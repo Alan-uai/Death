@@ -10,23 +10,23 @@ interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
   channelId: string;
+  disabled?: boolean;
 }
 
 const placeholders: Record<string, string> = {
-    'welcome': 'This channel is read-only.',
     'q-and-a': 'Message with @Death <your question>',
     'build-suggestions': 'Message with /suggest-build <style>',
-    'game-stats': 'This channel is for game statistics.',
 };
 
 
-export function ChatInput({ onSendMessage, isLoading, channelId }: ChatInputProps) {
+export function ChatInput({ onSendMessage, isLoading, channelId, disabled = false }: ChatInputProps) {
   const [input, setInput] = useState('');
-  const isReadOnly = channelId === 'welcome';
+  
+  const placeholder = placeholders[channelId] || 'Send a message...';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() && !isLoading && !isReadOnly) {
+    if (input.trim() && !isLoading && !disabled) {
       onSendMessage(input);
       setInput('');
     }
@@ -39,9 +39,9 @@ export function ChatInput({ onSendMessage, isLoading, channelId }: ChatInputProp
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={placeholders[channelId] || 'Send a message...'}
+          placeholder={disabled ? 'Select a channel to start' : placeholder}
           className="h-12 rounded-lg bg-input pl-10 pr-12 text-base"
-          disabled={isLoading || isReadOnly}
+          disabled={isLoading || disabled}
           autoComplete="off"
         />
         <Button
@@ -49,7 +49,7 @@ export function ChatInput({ onSendMessage, isLoading, channelId }: ChatInputProp
           size="icon"
           variant="ghost"
           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-primary"
-          disabled={isLoading || !input.trim() || isReadOnly}
+          disabled={isLoading || !input.trim() || disabled}
         >
           <Send className="h-5 w-5" />
         </Button>
