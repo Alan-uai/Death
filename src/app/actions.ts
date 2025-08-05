@@ -58,6 +58,12 @@ export async function getGuildChannelsAction(
     return channels;
   } catch (error) {
     console.error('Error getting guild channels:', error);
-    return [];
+    // Return a default structure on error to avoid crashing the UI
+    return [
+        { id: 'welcome', name: 'welcome', type: 0 },
+        { id: 'q-and-a', name: 'q-and-a', type: 0 },
+        { id: 'build-suggestions', name: 'build-suggestions', type: 0 },
+        { id: 'game-stats', name: 'game-stats', type: 0 },
+    ];
   }
 }

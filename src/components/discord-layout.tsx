@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, ChevronDown, Gamepad2, Hash, Speaker, UserCircle } from 'lucide-react';
+import { ChevronDown, Hash, Speaker } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -16,18 +16,22 @@ import { getBotStatusAction, getGuildChannelsAction } from '@/app/actions';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import type { DiscordChannel } from '@/services/discord';
 
-// This is a mock guild ID. In a real app, you'd get this after the bot joins a server.
-const MOCK_GUILD_ID = '123456789012345678';
 
 interface ChannelList {
   text: DiscordChannel[];
   voice: DiscordChannel[];
 }
 
-export function DiscordLayout() {
+interface DiscordLayoutProps {
+    guildId: string;
+}
+
+export function DiscordLayout({ guildId }: DiscordLayoutProps) {
   const [activeChannel, setActiveChannel] = useState('welcome');
   const [channels, setChannels] = useState<ChannelList>({ text: [], voice: [] });
   const [botStatus, setBotStatus] = useState('Connecting...');
+  const [guildName, setGuildName] = useState('Your Server');
+  const [guildIcon, setGuildIcon] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStatus = async () => {
@@ -37,39 +41,55 @@ export function DiscordLayout() {
     fetchStatus();
 
     const fetchChannels = async () => {
-      // For the prototype, we can't know the actual server ID the user
-      // invited the bot to. We'll use a placeholder and rely on the
-      // bot token being for a server it's already in.
-      // A real implementation would get the guild ID from a webhook
-      // after the bot is invited.
-      const allChannels = await getGuildChannelsAction(MOCK_GUILD_ID);
+      if (!guildId) return;
+      const allChannels = await getGuildChannelsAction(guildId);
       
-      const textChannels = allChannels.filter(c => c.type === 0 && c.name === 'general');
+      const textChannels = allChannels.filter(c => c.type === 0);
       const voiceChannels = allChannels.filter(c => c.type === 2);
-      
-      const welcomeChannel: DiscordChannel = { id: 'welcome', name: 'welcome', type: 0 };
-      const qnaChannel = allChannels.find(c => c.name === 'q-and-a') || {id: 'q-and-a', name: 'q-and-a', type: 0};
-      const buildChannel = allChannels.find(c => c.name === 'build-suggestions') || {id: 'build-suggestions', name: 'build-suggestions', type: 0};
-      const statsChannel = allChannels.find(c => c.name === 'game-stats') || {id: 'game-stats', name: 'game-stats', type: 0};
 
+      const welcomeChannel: DiscordChannel = { id: 'welcome', name: 'welcome', type: 0 };
+      const defaultChannels = [
+          welcomeChannel,
+          ...textChannels,
+      ];
+      
       const finalChannels = {
-        text: [welcomeChannel, qnaChannel, buildChannel, statsChannel, ...textChannels.filter(c => !['q-and-a', 'build-suggestions', 'game-stats'].includes(c.name))],
+        text: defaultChannels,
         voice: voiceChannels
       };
-
-      // Set a default active channel if the initial one doesn't exist
+      
       if (finalChannels.text.length > 0) {
         setActiveChannel(finalChannels.text[0].id);
-      } else if (finalChannels.voice.length > 0) {
-         setActiveChannel(finalChannels.voice[0].id);
       }
       
       setChannels(finalChannels);
     };
+    
+    const fetchGuildInfo = async () => {
+        const token = localStorage.getItem('discord_access_token');
+        if (!token || !guildId) return;
+        
+        try {
+            const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const guildData = await response.json();
+                setGuildName(guildData.name);
+                if (guildData.icon) {
+                    setGuildIcon(`https://cdn.discordapp.com/icons/${guildData.id}/${guildData.icon}.png`);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching guild info:', error);
+        }
+    };
+
 
     fetchChannels().catch(console.error);
+    fetchGuildInfo().catch(console.error);
 
-  }, []);
+  }, [guildId]);
 
   const activeChannelName = 
     channels.text.find(c => c.id === activeChannel)?.name ||
@@ -85,19 +105,23 @@ export function DiscordLayout() {
               <div className="group relative">
                 <div className="absolute -left-2 h-10 w-1 rounded-r-full bg-primary transition-all duration-200" />
                 <div className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl bg-primary/20 text-primary transition-all duration-200 group-hover:rounded-2xl">
-                  <DiscordLogoIcon className="h-8 w-8 text-white" />
+                 {guildIcon ? (
+                    <img src={guildIcon} alt={guildName} className="h-full w-full rounded-2xl" />
+                 ) : (
+                    <DiscordLogoIcon className="h-8 w-8 text-white" />
+                 )}
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Your Server</p>
+              <p>{guildName}</p>
             </TooltipContent>
           </Tooltip>
         </div>
 
         <div className="flex w-60 flex-col bg-[#2f3136]">
           <div className="flex h-12 items-center px-4 font-bold text-white shadow-md">
-            Your Server Name
+            {guildName}
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-2">
             {channels.text.length > 0 && (<div className="space-y-1">
