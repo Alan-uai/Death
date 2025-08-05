@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Gamepad2, Hash, UserCircle } from 'lucide-react';
+import { Bot, ChevronDown, Gamepad2, Hash, Speaker, UserCircle } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -13,13 +13,21 @@ import {
 } from '@/components/ui/tooltip';
 import { UserAvatar } from './user-avatar';
 import { getBotStatusAction } from '@/app/actions';
+import Image from 'next/image';
 
-const channels = [
-  { id: 'welcome', name: 'welcome', icon: Hash },
-  { id: 'q-and-a', name: 'q-and-a', icon: Hash },
-  { id: 'build-suggestions', name: 'build-suggestions', icon: Hash },
-  { id: 'game-stats', name: 'game-stats', icon: Hash },
-];
+const initialChannels = {
+  text: [
+    { id: 'welcome', name: 'welcome' },
+    { id: 'q-and-a', name: 'q-and-a' },
+    { id: 'build-suggestions', name: 'build-suggestions' },
+    { id: 'game-stats', name: 'game-stats' },
+  ],
+  voice: [
+    { id: 'general-voice', name: 'General' },
+    { id: 'gaming-lounge', name: 'Gaming Lounge' },
+  ]
+};
+
 
 export function DiscordLayout() {
   const [activeChannel, setActiveChannel] = useState('welcome');
@@ -41,38 +49,56 @@ export function DiscordLayout() {
             <TooltipTrigger>
               <div className="group relative">
                 <div className="absolute -left-2 h-10 w-1 rounded-r-full bg-primary transition-all duration-200" />
-                <div className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl bg-primary text-primary-foreground transition-all duration-200 group-hover:rounded-2xl">
-                  <Gamepad2 className="h-7 w-7" />
+                <div className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-2xl bg-primary/20 text-primary transition-all duration-200 group-hover:rounded-2xl">
+                  <Image src="/discord-logo.svg" alt="Server Icon" width={32} height={32} />
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>Death</p>
+              <p>Your Server</p>
             </TooltipContent>
           </Tooltip>
         </div>
 
         <div className="flex w-60 flex-col bg-[#2f3136]">
           <div className="flex h-12 items-center px-4 font-bold text-white shadow-md">
-            Death
+            Your Server Name
           </div>
           <div className="flex-1 space-y-2 overflow-y-auto p-2">
-            <span className="px-2 text-xs font-semibold uppercase tracking-wider">
-              Text Channels
-            </span>
-            {channels.map((channel) => (
-              <button
-                key={channel.id}
-                onClick={() => setActiveChannel(channel.id)}
-                className={cn(
-                  'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-card hover:text-white',
-                  activeChannel === channel.id && 'bg-card text-white'
-                )}
-              >
-                <channel.icon className="mr-2 h-5 w-5" />
-                <span className="font-medium">{channel.name}</span>
+            <div className="space-y-1">
+              <button className="flex w-full items-center px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-white">
+                <ChevronDown className="mr-1 h-3 w-3" />
+                Text Channels
               </button>
-            ))}
+              {initialChannels.text.map((channel) => (
+                <button
+                  key={channel.id}
+                  onClick={() => setActiveChannel(channel.id)}
+                  className={cn(
+                    'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-card hover:text-white',
+                    activeChannel === channel.id && 'bg-card text-white'
+                  )}
+                >
+                  <Hash className="mr-2 h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">{channel.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1 pt-2">
+              <button className="flex w-full items-center px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-white">
+                <ChevronDown className="mr-1 h-3 w-3" />
+                Voice Channels
+              </button>
+              {initialChannels.voice.map((channel) => (
+                <div
+                  key={channel.id}
+                  className='group flex w-full items-center rounded-md px-2 py-1'
+                >
+                  <Speaker className="mr-2 h-5 w-5 text-muted-foreground" />
+                  <span className="font-medium">{channel.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex h-14 items-center bg-[#292b2f] p-2">
              <div className="flex items-center">
