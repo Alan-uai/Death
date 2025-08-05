@@ -15,11 +15,11 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
     author: 'bot',
     username: 'Death',
     embed: {
-      title: 'Welcome to Death!',
+      title: 'Welcome to the Death Dashboard!',
       description:
-        'I can help you with game mechanics, lore, and even suggest builds. Here are some commands you can use in the appropriate channels:',
+        'I will respond to @mentions in your server. You can configure my behavior here. Here are some commands you can use in the appropriate channels:',
       fields: [
-        { name: '/ask <question>', value: 'Ask anything about the game in #q-and-a.' },
+        { name: '@Death <question>', value: 'Ask anything about the game in your server.' },
         { name: '/suggest-build <style>', value: 'Get a build suggestion in #build-suggestions.' },
         { name: '/stats', value: 'View the bot\'s status in #game-stats.' },
       ],
@@ -28,7 +28,7 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
   'q-and-a': {
     author: 'bot',
     username: 'Death',
-    text: 'This is the Q&A channel. Ask me anything about the game using the `/ask` command!',
+    text: 'This is the Q&A channel. Ask me anything about the game by @mentioning me in your server!',
   },
   'build-suggestions': {
     author: 'bot',
@@ -48,23 +48,15 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const [clientTimestamp, setClientTimestamp] = useState<string | null>(null);
 
   useEffect(() => {
-    // Generate timestamp on the client to avoid hydration mismatch
-    setClientTimestamp(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-  }, []);
-
-  useEffect(() => {
-    if (clientTimestamp) {
-      const welcomeMessage: Message = {
-        ...welcomeMessages[channelId],
-        id: `${channelId}-1`,
-        timestamp: clientTimestamp,
-      };
-      setMessages([welcomeMessage]);
-    }
-  }, [channelId, clientTimestamp]);
+    const welcomeMessage: Message = {
+      ...welcomeMessages[channelId],
+      id: `${channelId}-1`,
+      timestamp: getTimestamp(),
+    };
+    setMessages([welcomeMessage]);
+  }, [channelId]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -73,13 +65,13 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
   }, [messages]);
 
   const handleSendMessage = async (input: string) => {
-    if (!input.trim() || !clientTimestamp) return;
+    if (!input.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
       author: 'user',
       username: 'PlayerOne',
-      timestamp: clientTimestamp,
+      timestamp: getTimestamp(),
       text: input,
     };
     setMessages((prev) => [...prev, userMessage]);
@@ -89,9 +81,9 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     const restOfInput = args.join(' ');
     let botResponse: Message | null = null;
     const responseId = (Date.now() + 1).toString();
-    const responseTimestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const responseTimestamp = getTimestamp();
 
-    if (channelId === 'q-and-a' && command === '/ask') {
+    if (command.startsWith('@')) {
       const answer = await askQuestionAction({ question: restOfInput });
       botResponse = {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
@@ -129,7 +121,7 @@ export function ChatPanel({ channelId }: ChatPanelProps) {
     } else {
         botResponse = {
             id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-            text: `The command \`${command}\` is not valid for this channel. Please check the welcome message for instructions.`,
+            text: `The command \`${command}\` is not valid for this channel. Please check the welcome message for instructions. Note that you can now mention the bot to ask questions.`,
         };
     }
     

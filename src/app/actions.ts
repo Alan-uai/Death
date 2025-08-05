@@ -40,10 +40,8 @@ export async function suggestBuildAction(
 
 export async function getBotStatusAction(): Promise<string> {
   try {
-    // For this example, we'll return "Online" if the flow executes successfully.
-    // A real implementation might involve more complex logic to check the bot's heartbeat.
-    await getBotStatus();
-    return 'Online';
+    const result = await getBotStatus();
+    return result.status;
   } catch (error) {
     console.error('Error getting bot status:', error);
     return 'Offline';

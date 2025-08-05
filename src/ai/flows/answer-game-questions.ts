@@ -29,7 +29,7 @@ const prompt = ai.definePrompt({
   name: 'answerGameQuestionsPrompt',
   input: {schema: AnswerGameQuestionsInputSchema},
   output: {schema: AnswerGameQuestionsOutputSchema},
-  prompt: `You are a chatbot that answers questions about a video game.
+  prompt: `You are a chatbot in a Discord server that answers questions about a video game when a user @mentions you.
 
   Question: {{{question}}}
   Answer: `,
