@@ -9,11 +9,6 @@ import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import type { DiscordChannel } from '@/services/discord';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
-const REDIRECT_URI = typeof window !== 'undefined' ? window.location.origin : '';
-
-const OAUTH2_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=identify%20guilds`;
-
-const BOT_INVITE_BASE_URL = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`;
 
 interface Guild {
   id: string;
@@ -26,8 +21,15 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [guilds, setGuilds] = useState<Guild[]>([]);
   const [selectedGuild, setSelectedGuild] = useState<string | null>(null);
+  const [oauthUrl, setOauthUrl] = useState('');
+  const [botInviteBaseUrl, setBotInviteBaseUrl] = useState('');
 
   useEffect(() => {
+    // This code now runs only on the client
+    const redirectUri = window.location.origin;
+    setOauthUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify%20guilds`);
+    setBotInviteBaseUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`);
+
     const hash = window.location.hash;
     if (hash) {
       const params = new URLSearchParams(hash.substring(1));
@@ -41,7 +43,6 @@ export default function Home() {
       setIsLoggedIn(true);
     }
     
-    // Check if a guild has been selected
     const storedGuild = localStorage.getItem('selected_guild_id');
     if (storedGuild) {
         setSelectedGuild(storedGuild);
@@ -80,17 +81,21 @@ export default function Home() {
   }, [isLoggedIn, selectedGuild]);
 
   const handleLogin = () => {
-    window.location.href = OAUTH2_URL;
+    if (oauthUrl) {
+      window.location.href = oauthUrl;
+    }
   };
   
   const handleInvite = (guildId: string) => {
-    const inviteUrl = `${BOT_INVITE_BASE_URL}&guild_id=${guildId}&disable_guild_select=true`;
-    window.open(inviteUrl, '_blank');
-    localStorage.setItem('selected_guild_id', guildId);
-    // Give a moment for the user to complete the invite flow in the new tab
-    setTimeout(() => {
-        setSelectedGuild(guildId);
-    }, 1500); 
+    if (botInviteBaseUrl) {
+      const inviteUrl = `${botInviteBaseUrl}&guild_id=${guildId}&disable_guild_select=true`;
+      window.open(inviteUrl, '_blank');
+      localStorage.setItem('selected_guild_id', guildId);
+      // Give a moment for the user to complete the invite flow in the new tab
+      setTimeout(() => {
+          setSelectedGuild(guildId);
+      }, 1500);
+    }
   };
   
   if (selectedGuild) {
@@ -111,7 +116,7 @@ export default function Home() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
-                    <Button onClick={handleLogin} className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold">
+                    <Button onClick={handleLogin} className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold" disabled={!oauthUrl}>
                         Login with Discord
                     </Button>
                 </CardContent>
@@ -144,13 +149,13 @@ export default function Home() {
                                       )}
                                       <span className="font-medium">{guild.name}</span>
                                   </div>
-                                  <Button onClick={() => handleInvite(guild.id)} className="bg-primary hover:bg-primary/80">
+                                  <Button onClick={() => handleInvite(guild.id)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
                                       Add Bot
                                   </Button>
                               </div>
                           ))
                       ) : (
-                          <p className="text-muted-foreground">No manageable servers found. Make sure you are logged into the correct Discord account.</p>
+                          <p className="text-muted-foreground">No manageable servers found. Make sure you are logged into the correct Discord account and have 'Manage Server' permissions.</p>
                       )}
                   </div>
               </CardContent>
