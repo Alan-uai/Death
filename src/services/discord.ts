@@ -32,8 +32,8 @@ async function fetchDiscordApi<T>(
     headers: {
       Authorization: authHeader,
     },
-     // Add caching to avoid hitting rate limits
-    next: { revalidate: 60 }
+    // No cache to ensure data is always fresh
+    cache: 'no-store',
   });
 
   if (!response.ok) {
