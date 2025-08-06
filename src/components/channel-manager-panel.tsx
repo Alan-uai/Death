@@ -145,4 +145,3 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
-

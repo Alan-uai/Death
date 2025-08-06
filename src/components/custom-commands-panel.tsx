@@ -214,4 +214,3 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
-
