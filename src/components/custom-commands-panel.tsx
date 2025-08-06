@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -20,8 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useSettings } from '@/contexts/settings-context';
-
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const commandOptions = [
     { id: 'q-and-a', name: 'Perguntas e Respostas (@Menção)' },
@@ -29,16 +29,15 @@ const commandOptions = [
     { id: 'novo-comando', name: 'Criar Novo Comando' },
 ];
 
-const PANEL_ID = 'customCommands';
-
 export function CustomCommandsPanel({ guildId }: { guildId: string }) {
-  const { registerPanel, getInitialData } = useSettings();
   const [selectedCommandId, setSelectedCommandId] = useState<string>('q-and-a');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
   const methods = useForm<CustomCommand>({
     resolver: zodResolver(CustomCommandSchema),
-    defaultValues: getInitialData(PANEL_ID) || {
+    defaultValues: {
       id: 'q-and-a',
       name: 'Perguntas e Respostas',
       description: 'Resposta padrão ao ser mencionado.',
@@ -49,19 +48,6 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
       },
     },
   });
-
-  const onSave = useCallback(() => {
-      const values = methods.getValues();
-      return saveCommandConfigAction(guildId, values);
-  }, [methods, guildId]);
-  
-  const isDirty = useCallback(() => {
-      return methods.formState.isDirty;
-  }, [methods.formState.isDirty]);
-
-  useEffect(() => {
-    registerPanel(PANEL_ID, { onSave, isDirty });
-  }, [registerPanel, onSave, isDirty]);
 
   useEffect(() => {
     const fetchCommandData = async () => {
@@ -101,117 +87,142 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     fetchCommandData();
   }, [selectedCommandId, methods]);
   
+  const handleSave = async (data: CustomCommand) => {
+    setIsSaving(true);
+    try {
+        await saveCommandConfigAction(guildId, data);
+        toast({
+            title: 'Sucesso!',
+            description: `Comando "${data.name}" salvo com sucesso.`
+        });
+        methods.reset(data); // Reseta o form state para "não-sujo"
+    } catch (error) {
+        console.error("Falha ao salvar comando: ", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: `Não foi possível salvar o comando.`
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
   
   const responseType = methods.watch('responseType');
 
   return (
     <div className="p-4 md:p-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Comandos e Respostas</CardTitle>
-          <CardDescription>
-            Crie novos comandos ou personalize as respostas. As alterações serão salvas quando você clicar no botão "Salvar" na barra inferior.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FormProvider {...methods}>
-            <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
-              <div>
-                <Label htmlFor="command-select">Selecione o Comando para Editar</Label>
-                <Select value={selectedCommandId} onValueChange={setSelectedCommandId}>
-                  <SelectTrigger id="command-select">
-                    <SelectValue placeholder="Selecione um comando..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {commandOptions.map(cmd => (
-                      <SelectItem key={cmd.id} value={cmd.id}>{cmd.name}</SelectItem>
-                    ))}
-                  </S
-electContent>
-                </Select>
-              </div>
-
-              {isLoading ? (
-                <div className="flex justify-center items-center h-40">
-                  <Loader2 className="h-8 w-8 animate-spin" />
+      <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(handleSave)}>
+          <Card>
+            <CardHeader>
+              <CardTitle>Comandos e Respostas</CardTitle>
+              <CardDescription>
+                Crie novos comandos ou personalize as respostas.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-8">
+                <div>
+                  <Label htmlFor="command-select">Selecione o Comando para Editar</Label>
+                  <Select value={selectedCommandId} onValueChange={setSelectedCommandId}>
+                    <SelectTrigger id="command-select">
+                      <SelectValue placeholder="Selecione um comando..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {commandOptions.map(cmd => (
+                        <SelectItem key={cmd.id} value={cmd.id}>{cmd.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : (
-                <div className="space-y-6 rounded-md border p-4">
-                    {selectedCommandId === 'novo-comando' && (
-                         <>
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Nome do Comando (ex: /regras)</Label>
-                                <Input id="name" {...methods.register('name')} placeholder="/regras"/>
-                                {methods.formState.errors.name && <p className="text-sm text-destructive">{methods.formState.errors.name.message}</p>}
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="description">Descrição do Comando</Label>
-                                <Input id="description" {...methods.register('description')} placeholder="Mostra as regras do servidor"/>
-                                {methods.formState.errors.description && <p className="text-sm text-destructive">{methods.formState.errors.description.message}</p>}
-                            </div>
-                        </>
-                    )}
-                  
-                  <div className="space-y-2">
-                    <Label>Formato da Resposta</Label>
-                    <RadioGroup
-                      value={responseType}
-                      onValueChange={(value) => methods.setValue('responseType', value as 'container' | 'embed', { shouldDirty: true })}
-                      className="flex gap-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="container" id="r-container" />
-                        <Label htmlFor="r-container">Container (Texto Simples)</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="embed" id="r-embed" />
-                        <Label htmlFor="r-embed">Embed (Cartão Formatado)</Label>
-                      </div>
-                    </RadioGroup>
+
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-40">
+                    <Loader2 className="h-8 w-8 animate-spin" />
                   </div>
-
-                  <Separator />
-
-                  {responseType === 'container' ? (
+                ) : (
+                  <div className="space-y-6 rounded-md border p-4">
+                      {selectedCommandId === 'novo-comando' && (
+                          <>
+                              <div className="space-y-2">
+                                  <Label htmlFor="name">Nome do Comando (ex: /regras)</Label>
+                                  <Input id="name" {...methods.register('name')} placeholder="/regras"/>
+                                  {methods.formState.errors.name && <p className="text-sm text-destructive">{methods.formState.errors.name.message}</p>}
+                              </div>
+                              <div className="space-y-2">
+                                  <Label htmlFor="description">Descrição do Comando</Label>
+                                  <Input id="description" {...methods.register('description')} placeholder="Mostra as regras do servidor"/>
+                                  {methods.formState.errors.description && <p className="text-sm text-destructive">{methods.formState.errors.description.message}</p>}
+                              </div>
+                          </>
+                      )}
+                    
                     <div className="space-y-2">
-                      <Label htmlFor="response.container">Conteúdo da Mensagem</Label>
-                      <Textarea
-                        id="response.container"
-                        {...methods.register('response.container')}
-                        placeholder="Digite a resposta do bot aqui."
-                        rows={5}
-                      />
+                      <Label>Formato da Resposta</Label>
+                      <RadioGroup
+                        value={responseType}
+                        onValueChange={(value) => methods.setValue('responseType', value as 'container' | 'embed', { shouldDirty: true })}
+                        className="flex gap-4"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="container" id="r-container" />
+                          <Label htmlFor="r-container">Container (Texto Simples)</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="embed" id="r-embed" />
+                          <Label htmlFor="r-embed">Embed (Cartão Formatado)</Label>
+                        </div>
+                      </RadioGroup>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
+
+                    <Separator />
+
+                    {responseType === 'container' ? (
                       <div className="space-y-2">
-                        <Label htmlFor="response.embed.title">Título do Embed</Label>
-                        <Input
-                          id="response.embed.title"
-                          {...methods.register('response.embed.title')}
-                          placeholder="Título do cartão"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="response.embed.description">Descrição do Embed</Label>
+                        <Label htmlFor="response.container">Conteúdo da Mensagem</Label>
                         <Textarea
-                          id="response.embed.description"
-                          {...methods.register('response.embed.description')}
-                          placeholder="Corpo da mensagem do cartão"
+                          id="response.container"
+                          {...methods.register('response.container')}
+                          placeholder="Digite a resposta do bot aqui."
                           rows={5}
                         />
                       </div>
-                    </div>
-                  )}
-                   <p className="text-xs text-muted-foreground">
-                        Você pode usar variáveis como `{"{{question}}"}`, `{"{{answer}}"}`, ou `{"{{user}}"}`, que serão substituídas na resposta do bot.
-                    </p>
-                </div>
-              )}
-            </form>
-          </FormProvider>
-        </CardContent>
-      </Card>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="response.embed.title">Título do Embed</Label>
+                          <Input
+                            id="response.embed.title"
+                            {...methods.register('response.embed.title')}
+                            placeholder="Título do cartão"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="response.embed.description">Descrição do Embed</Label>
+                          <Textarea
+                            id="response.embed.description"
+                            {...methods.register('response.embed.description')}
+                            placeholder="Corpo da mensagem do cartão"
+                            rows={5}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                          Você pode usar variáveis como `{"{{question}}"}`, `{"{{answer}}"}`, ou `{"{{user}}"}`, que serão substituídas na resposta do bot.
+                      </p>
+                  </div>
+                )}
+            </CardContent>
+             <CardFooter className="flex justify-end">
+                  <Button type="submit" disabled={isSaving || !methods.formState.isDirty}>
+                      {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                      Salvar Alterações
+                  </Button>
+              </CardFooter>
+          </Card>
+        </form>
+      </FormProvider>
     </div>
   );
 }

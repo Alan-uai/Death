@@ -1,17 +1,17 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
-import { useSettings } from '@/contexts/settings-context';
 import { saveGenericConfigAction } from '@/app/actions';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 type Personality = 'amigavel' | 'sarcastico' | 'formal';
-
-const PANEL_ID = 'botPersonality';
 
 const personalityDescriptions: Record<Personality, string> = {
     amigavel: 'O bot será amigável, prestativo e usará emojis. Ideal para comunidades descontraídas.',
@@ -26,41 +26,41 @@ const personalityPrompts: Record<Personality, string> = {
 };
 
 export function BotPersonalityPanel({ guildId }: { guildId: string }) {
-    const { registerPanel, getInitialData } = useSettings();
-
-    const initialSettings = getInitialData<{ personality: Personality; customPrompt: string }>(PANEL_ID) || {
-        personality: 'amigavel',
-        customPrompt: personalityPrompts['amigavel'],
-    };
-
-    const [personality, setPersonality] = useState<Personality>(initialSettings.personality);
-    const [customPrompt, setCustomPrompt] = useState(initialSettings.customPrompt || personalityPrompts[personality]);
-
-    const isDirty = useCallback(() => {
-        return personality !== initialSettings.personality || customPrompt !== initialSettings.customPrompt;
-    }, [personality, customPrompt, initialSettings]);
-    
-    const onSave = useCallback(() => {
-        return saveGenericConfigAction(guildId, {
-            personality,
-            customPrompt
-        });
-    }, [guildId, personality, customPrompt]);
-    
-    useEffect(() => {
-        registerPanel(PANEL_ID, { onSave, isDirty });
-    }, [registerPanel, onSave, isDirty]);
-
+    const [personality, setPersonality] = useState<Personality>('amigavel');
+    const [customPrompt, setCustomPrompt] = useState(personalityPrompts.amigavel);
+    const [isSaving, setIsSaving] = useState(false);
+    const { toast } = useToast();
 
     const handlePersonalityChange = (newPersonality: Personality) => {
         setPersonality(newPersonality);
-        // Atualiza o prompt apenas se ele for o padrão da personalidade anterior
         const oldDefaultPrompt = personalityPrompts[personality];
         if (customPrompt === oldDefaultPrompt || customPrompt === '') {
             setCustomPrompt(personalityPrompts[newPersonality]);
         }
     };
 
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await saveGenericConfigAction(guildId, {
+                personality,
+                customPrompt
+            });
+            toast({
+                title: 'Sucesso!',
+                description: 'A personalidade do bot foi salva.',
+            });
+        } catch (error) {
+            console.error('Falha ao salvar personalidade:', error);
+            toast({
+                variant: 'destructive',
+                title: 'Erro ao Salvar',
+                description: 'Não foi possível salvar a personalidade do bot.',
+            });
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     return (
         <div className="p-4 md:p-6">
@@ -99,11 +99,14 @@ export function BotPersonalityPanel({ guildId }: { guildId: string }) {
                             rows={8}
                             placeholder="Descreva em detalhes como o bot deve se comportar, o que ele deve ou não fazer, etc."
                         />
-                         <p className="text-xs text-muted-foreground">
-                            As alterações serão salvas quando você clicar em "Salvar" na barra inferior.
-                        </p>
                     </div>
                 </CardContent>
+                <CardFooter className="flex justify-end">
+                    <Button onClick={handleSave} disabled={isSaving}>
+                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Salvar Alterações
+                    </Button>
+                </CardFooter>
             </Card>
         </div>
     );

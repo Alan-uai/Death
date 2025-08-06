@@ -1,57 +1,51 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { saveChannelConfigAction } from '@/app/actions';
-import { useSettings } from '@/contexts/settings-context';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
 
-const PANEL_ID = 'channelManagement';
-
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
-  const { registerPanel, getInitialData } = useSettings();
-
-  const initialSettings = getInitialData<{
-      mode: ManagementMode;
-      suggestions: { enabled: boolean };
-      reports: { enabled: boolean };
-  }>(PANEL_ID) || {
-      mode: 'slash',
-      suggestions: { enabled: false },
-      reports: { enabled: false },
-  };
-
-  const [mode, setMode] = useState<ManagementMode>(initialSettings.mode);
-  const [enableSuggestions, setEnableSuggestions] = useState(initialSettings.suggestions.enabled);
-  const [enableReports, setEnableReports] = useState(initialSettings.reports.enabled);
-
-  const isDirty = useCallback(() => {
-    return (
-      mode !== initialSettings.mode ||
-      enableSuggestions !== initialSettings.suggestions.enabled ||
-      enableReports !== initialSettings.reports.enabled
-    );
-  }, [mode, enableSuggestions, enableReports, initialSettings]);
-  
-  const onSave = useCallback(() => {
-    return saveChannelConfigAction(guildId, {
-        mode,
-        suggestions: { enabled: enableSuggestions },
-        reports: { enabled: enableReports }
-    });
-  }, [guildId, mode, enableSuggestions, enableReports]);
-
-  useEffect(() => {
-    registerPanel(PANEL_ID, { onSave, isDirty });
-  }, [registerPanel, onSave, isDirty]);
+  const [mode, setMode] = useState<ManagementMode>('slash');
+  const [enableSuggestions, setEnableSuggestions] = useState(false);
+  const [enableReports, setEnableReports] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
   
   const showChannels = mode === 'channels' || mode === 'both';
   const showSlashInfo = mode === 'slash' || mode === 'both';
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+        await saveChannelConfigAction(guildId, {
+            mode,
+            suggestions: { enabled: enableSuggestions },
+            reports: { enabled: enableReports }
+        });
+        toast({
+            title: 'Sucesso!',
+            description: 'Configurações de canal salvas.',
+        });
+    } catch (error) {
+        console.error('Falha ao salvar configurações de canal:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: 'Não foi possível salvar as configurações de canal.',
+        });
+    } finally {
+        setIsSaving(false);
+    }
+  };
 
   return (
     <div className="p-4 md:p-6">
@@ -59,7 +53,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor. As alterações serão salvas quando você clicar em "Salvar" na barra inferior.
+            Escolha como o bot deve interagir com o servidor.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -141,6 +135,12 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                 </div>
             )}
         </CardContent>
+        <CardFooter className="flex justify-end">
+            <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Alterações
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );

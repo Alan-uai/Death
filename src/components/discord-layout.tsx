@@ -20,9 +20,6 @@ import { ChannelManagerPanel } from './channel-manager-panel';
 import { BotPersonalityPanel } from './bot-personality-panel';
 import { AnalyticsPanel } from './analytics-panel';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
-import { SettingsProvider, useSettings } from '@/contexts/settings-context';
-import { SaveChangesBar } from './save-changes-bar';
-import { useToast } from '@/hooks/use-toast';
 
 
 type Panel = 'chat' | 'settings' | 'commands' | 'channels' | 'personality' | 'analytics';
@@ -41,19 +38,17 @@ const navItems = [
     { id: 'analytics', label: 'Analytics', icon: BarChart },
 ];
 
-function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
+export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { isDirty, discardChanges } = useSettings();
-  const { toast } = useToast();
 
   const panelComponents: Record<Panel, React.FC<any>> = {
     chat: ChatPanel,
     settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
     commands: (props) => <CustomCommandsPanel {...props} guildId={guild.id} />,
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
-    personality: BotPersonalityPanel,
+    personality: (props) => <BotPersonalityPanel {...props} guildId={guild.id} />,
     analytics: AnalyticsPanel,
   };
 
@@ -69,31 +64,10 @@ function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
   const guildIcon = guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null;
 
   const handlePanelChange = (panel: Panel) => {
-    if (isDirty) {
-      toast({
-        variant: 'destructive',
-        title: 'Alterações não salvas!',
-        description: 'Salve ou descarte suas alterações antes de navegar para outra página.',
-      });
-      return;
-    }
     setActivePanel(panel);
     setIsSheetOpen(false); // Fecha o menu mobile ao selecionar uma opção
   }
   
-  const handleGoBack = () => {
-    if (isDirty) {
-      toast({
-        variant: 'destructive',
-        title: 'Alterações não salvas!',
-        description: 'Salve ou descarte suas alterações antes de sair.',
-      });
-      return;
-    }
-    discardChanges(); // Garante que o estado seja limpo ao sair
-    onGoBack();
-  }
-
   const renderNav = () => (
     <nav className="flex flex-col space-y-2 p-4">
       <h2 className="mb-4 px-2 text-lg font-semibold tracking-tight">Painel</h2>
@@ -104,7 +78,6 @@ function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
                 variant={activePanel === item.id ? 'secondary' : 'ghost'}
                 className="w-full justify-start"
                 onClick={() => handlePanelChange(item.id as Panel)}
-                disabled={isDirty}
             >
                 <item.icon className="mr-2 h-4 w-4" />
                 {item.label}
@@ -145,7 +118,7 @@ function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
             <div className="ml-auto flex items-center">
               <Tooltip>
                   <TooltipTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleGoBack}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onGoBack}>
                           <ArrowLeft className="h-5 w-5" />
                       </Button>
                   </TooltipTrigger>
@@ -165,17 +138,7 @@ function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
             <ActivePanelComponent channels={channels} guildId={guild.id} />
           </main>
         </div>
-        
-        <SaveChangesBar guildId={guild.id} />
       </div>
     </TooltipProvider>
   );
-}
-
-export function DiscordLayout(props: DiscordLayoutProps) {
-    return (
-        <SettingsProvider>
-            <DiscordLayoutContent {...props} />
-        </SettingsProvider>
-    )
 }

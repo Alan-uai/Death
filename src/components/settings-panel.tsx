@@ -1,49 +1,48 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
 import type { DiscordChannel } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { saveGenericConfigAction } from '@/app/actions';
-import { useSettings } from '@/contexts/settings-context';
+import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from 'lucide-react';
 
 interface SettingsPanelProps {
   channels: DiscordChannel[];
   guildId: string;
 }
 
-const PANEL_ID = 'genericSettings';
-
 export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
-  const { registerPanel, getInitialData } = useSettings();
-  
-  const initialSettings = getInitialData<{
-    qaChannel: string;
-    buildsChannel: string;
-  }>(PANEL_ID) || {
-    qaChannel: 'any',
-    buildsChannel: 'any'
-  };
-
-  const [qaChannel, setQaChannel] = useState<string>(initialSettings.qaChannel);
-  const [buildsChannel, setBuildsChannel] = useState<string>(initialSettings.buildsChannel);
+  const [qaChannel, setQaChannel] = useState<string>('any');
+  const [buildsChannel, setBuildsChannel] = useState<string>('any');
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
   
   const textChannels = channels.filter(c => c.type === 0);
 
-  const isDirty = useCallback(() => {
-    return qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
-  }, [qaChannel, buildsChannel, initialSettings]);
-
-  const onSave = useCallback(() => {
-    return saveGenericConfigAction(guildId, { qaChannel, buildsChannel });
-  }, [guildId, qaChannel, buildsChannel]);
-
-  useEffect(() => {
-    registerPanel(PANEL_ID, { onSave, isDirty });
-  }, [registerPanel, onSave, isDirty]);
-
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await saveGenericConfigAction(guildId, { qaChannel, buildsChannel });
+      toast({
+        title: 'Sucesso!',
+        description: 'Configurações genéricas salvas com sucesso.',
+      });
+    } catch (error) {
+      console.error('Falha ao salvar configurações:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao Salvar',
+        description: 'Não foi possível salvar as configurações.',
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="p-4 md:p-6">
@@ -51,7 +50,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle>Configuração do Bot</CardTitle>
           <CardDescription>
-            Configure onde as funcionalidades do bot estão ativas. Clique em "Salvar" na barra inferior para aplicar.
+            Configure onde as funcionalidades do bot estão ativas.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -98,6 +97,12 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
             </div>
           </div>
         </CardContent>
+        <CardFooter className="flex justify-end">
+            <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar Alterações
+            </Button>
+        </CardFooter>
       </Card>
     </div>
   );
