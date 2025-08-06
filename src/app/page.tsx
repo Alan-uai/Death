@@ -55,6 +55,7 @@ export default function Home() {
         const token = localStorage.getItem('discord_access_token');
         if (!token) {
           setIsLoading(false);
+          setIsLoggedIn(false);
           return;
         }
 
@@ -71,8 +72,11 @@ export default function Home() {
             const manageableGuilds = userGuildsData.filter(g => (parseInt(g.permissions) & 0x20) === 0x20);
             setGuilds(manageableGuilds);
           } else {
-             localStorage.removeItem('discord_access_token');
-             setIsLoggedIn(false);
+             // Only log out if the token is explicitly rejected
+             if (userGuildsResponse.status === 401 || userGuildsResponse.status === 403) {
+                localStorage.removeItem('discord_access_token');
+                setIsLoggedIn(false);
+             }
           }
           
           const botGuildIds = botGuildsResponse.map(g => g.id);
@@ -80,10 +84,7 @@ export default function Home() {
 
         } catch (error) {
           console.error('Error fetching initial data:', error);
-          if (guilds.length === 0) {
-             localStorage.removeItem('discord_access_token');
-             setIsLoggedIn(false);
-          }
+          // Don't log out on a generic network error
         } finally {
             setIsLoading(false);
         }
@@ -138,7 +139,7 @@ export default function Home() {
     localStorage.removeItem('selected_guild');
     setSelectedGuild(null);
     setShowInviteMessage(false);
-    window.location.reload();
+    // No need to reload, the useEffect will trigger a re-fetch of guilds
   };
   
   if (selectedGuild) {
