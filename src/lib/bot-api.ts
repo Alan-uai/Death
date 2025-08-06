@@ -48,3 +48,7 @@ export async function saveChannelConfig(guildId: string, config: { mode: string;
 export async function saveGenericConfig(guildId: string, config: object) {
     return postToBotApi('config-generic', { guildId, ...config });
 }
+
+export async function setOwner(userId: string) {
+    return postToBotApi('set-owner', { userId });
+}

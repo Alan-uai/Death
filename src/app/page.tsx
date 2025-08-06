@@ -6,11 +6,13 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getManageableGuildsAction } from '@/app/actions';
-import type { DiscordGuild } from '@/lib/types';
+import { getManageableGuildsAction, getCurrentUserAction } from '@/app/actions';
+import type { DiscordGuild, DiscordUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ArrowRight, LogOut } from 'lucide-react';
+import { setOwner } from '@/lib/bot-api';
+import { useToast } from '@/hooks/use-toast';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 const DISCORD_PERMISSIONS = '8'; // Administrator permissions
@@ -19,10 +21,12 @@ type ManageableGuild = DiscordGuild & { bot_present: boolean };
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<DiscordUser | null>(null);
   const [guilds, setGuilds] = useState<ManageableGuild[]>([]);
   const [selectedGuild, setSelectedGuild] = useState<DiscordGuild | null>(null);
   const [oauthUrl, setOauthUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     const redirectUri = window.location.origin;
@@ -53,7 +57,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isLoggedIn && !selectedGuild) {
-      const fetchGuilds = async () => {
+      const fetchInitialData = async () => {
         setIsLoading(true);
         const token = localStorage.getItem('discord_access_token');
         if (!token) {
@@ -63,17 +67,21 @@ export default function Home() {
         }
 
         try {
-          const manageableGuilds = await getManageableGuildsAction(token);
+          const [manageableGuilds, currentUser] = await Promise.all([
+            getManageableGuildsAction(token),
+            getCurrentUserAction(token),
+          ]);
           setGuilds(manageableGuilds);
+          setUser(currentUser);
         } catch (error) {
-          console.error('Erro ao buscar servidores gerenciáveis:', error);
-          localStorage.removeItem('discord_access_token');
-          setIsLoggedIn(false);
+          console.error('Erro ao buscar dados iniciais:', error);
+          // Handle specific errors if needed, e.g., invalid token
+          handleLogout();
         } finally {
             setIsLoading(false);
         }
       };
-      fetchGuilds();
+      fetchInitialData();
     } else {
         setIsLoading(false);
     }
@@ -91,6 +99,7 @@ export default function Home() {
     setIsLoggedIn(false);
     setGuilds([]);
     setSelectedGuild(null);
+    setUser(null);
   };
 
   const handleSelect = (guild: DiscordGuild) => {
@@ -98,9 +107,27 @@ export default function Home() {
     setSelectedGuild(guild);
   }
   
-  const handleInvite = (guildId: string) => {
-      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&guild_id=${guildId}&permissions=${DISCORD_PERMISSIONS}&scope=bot%20applications.commands`;
-      window.open(inviteUrl, '_blank');
+  const handleInvite = async (guildId: string) => {
+      if (!user) {
+          toast({
+              variant: 'destructive',
+              title: 'Erro de Usuário',
+              description: 'Não foi possível identificar o usuário. Tente fazer login novamente.'
+          });
+          return;
+      }
+      try {
+          await setOwner(user.id);
+          const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&guild_id=${guildId}&permissions=${DISCORD_PERMISSIONS}&scope=bot%20applications.commands`;
+          window.open(inviteUrl, '_blank');
+      } catch (error) {
+          console.error('Falha ao definir o proprietário:', error);
+          toast({
+              variant: 'destructive',
+              title: 'Erro de API',
+              description: 'Não foi possível comunicar ao bot quem está o adicionando. O convite não pode prosseguir.',
+          });
+      }
   };
 
   const handleGoBack = () => {

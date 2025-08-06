@@ -1,8 +1,9 @@
+
 'use server';
 
 import { cache } from 'react';
 import { db } from '@/lib/firebase-admin';
-import type { DiscordChannel, DiscordGuild } from '@/lib/types';
+import type { DiscordChannel, DiscordGuild, DiscordUser } from '@/lib/types';
 import type { CustomCommand } from '@/lib/types';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -29,6 +30,15 @@ const getBotGuilds = cache(async (): Promise<DiscordGuild[]> => {
         headers: { Authorization: `Bot ${BOT_TOKEN}` }
     });
 });
+
+export const getCurrentUserAction = cache(async (
+    accessToken: string
+): Promise<DiscordUser> => {
+    return fetchDiscordApi('/users/@me', {
+        headers: { Authorization: `Bearer ${accessToken}` },
+    });
+});
+
 
 export const getManageableGuildsAction = cache(async (
   accessToken: string
