@@ -39,7 +39,6 @@ async function fetchDiscordApi<T>(
   const fetchOptions: RequestInit = {
     method,
     headers,
-    cache: 'no-store',
   };
 
   if (body) {
@@ -99,6 +98,12 @@ interface CreateChannelPayload {
     name: string;
     type: number;
     topic?: string;
+    permission_overwrites?: {
+        id: string;
+        type: number; // 0 for role, 1 for member
+        allow: string;
+        deny: string;
+    }[];
     default_reaction_emoji?: {
         emoji_id: string | null;
         emoji_name: string | null;
@@ -128,4 +133,17 @@ export async function createGuildChannel(
   );
 
   return newChannel;
+}
+
+export async function getGuildRoles(guildId: string): Promise<{ id: string, name: string }[]> {
+   if (!process.env.DISCORD_BOT_TOKEN) {
+    throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
+  }
+
+  const roles = await fetchDiscordApi<{ id: string, name: string }[]>(
+    `/guilds/${guildId}/roles`,
+    process.env.DISCORD_BOT_TOKEN
+  );
+
+  return roles;
 }

@@ -12,15 +12,25 @@ import {
   type SuggestInGameBuildInput,
 } from '@/ai/flows/suggest-in-game-build';
 import { getGuildChannels } from '@/ai/flows/get-guild-channels';
-import { 
+import {
   manageSuggestionChannel,
   type ManageSuggestionChannelInput,
   type ManageSuggestionChannelOutput,
 } from '@/ai/flows/manage-suggestion-channel';
+import { 
+  manageReportChannel,
+  type ManageReportChannelInput,
+  type ManageReportChannelOutput,
+} from '@/ai/flows/manage-report-channel';
 import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
 import { registerGuildCommands } from '@/services/discord-commands';
 import { db } from '@/lib/firebase-admin';
+import { 
+    getCustomCommand,
+    saveCustomCommand,
+    type CustomCommand
+} from '@/ai/flows/manage-custom-commands';
 
 export async function askQuestionAction(
   input: AnswerGameQuestionsInput
@@ -132,6 +142,52 @@ export async function manageSuggestionChannelAction(
     return {
       success: false,
       message: `Falha ao gerenciar canal de sugestões: ${errorMessage}`,
+    };
+  }
+}
+
+export async function manageReportChannelAction(
+  input: ManageReportChannelInput
+): Promise<ManageReportChannelOutput> {
+  try {
+    const result = await manageReportChannel(input);
+    return result;
+  } catch (error) {
+    console.error('Erro na ação manageReportChannelAction:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+    return {
+      success: false,
+      message: `Falha ao gerenciar canal de denúncias: ${errorMessage}`,
+    };
+  }
+}
+
+export const getCustomCommandAction = cache(async (
+  commandId: string
+): Promise<CustomCommand | null> => {
+  try {
+    return await getCustomCommand(commandId);
+  } catch (error) {
+    console.error(`Erro ao buscar comando customizado '${commandId}':`, error);
+    return null;
+  }
+});
+
+export async function saveCustomCommandAction(
+  command: CustomCommand
+): Promise<{ success: boolean; message: string }> {
+  try {
+    await saveCustomCommand(command);
+    return {
+      success: true,
+      message: 'Comando salvo com sucesso!',
+    };
+  } catch (error) {
+    console.error('Erro ao salvar comando customizado:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+    return {
+      success: false,
+      message: `Falha ao salvar comando: ${errorMessage}`,
     };
   }
 }

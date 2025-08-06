@@ -1,3 +1,4 @@
+
 import { config } from 'dotenv';
 config();
 
@@ -9,3 +10,5 @@ import '@/ai/flows/answer-game-questions.ts';
 import '@/ai/flows/get-bot-status.ts';
 import '@/ai/flows/get-guild-channels.ts';
 import '@/ai/flows/manage-suggestion-channel.ts';
+import '@/ai/flows/manage-report-channel.ts';
+import '@/ai/flows/manage-custom-commands.ts';
