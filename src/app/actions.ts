@@ -58,7 +58,7 @@ export async function getGuildChannelsAction(
 ): Promise<DiscordChannel[]> {
   try {
     // First, try to get channels from Firestore
-    const guildDocRef = db.collection('guilds').doc(guildId);
+    const guildDocRef = db.collection('servers').doc(guildId);
     const guildDoc = await guildDocRef.get();
 
     if (guildDoc.exists && guildDoc.data()?.channels) {

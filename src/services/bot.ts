@@ -34,7 +34,7 @@ if (!process.env.DISCORD_BOT_TOKEN) {
             console.error('Firestore db instance is not available. Skipping saveGuildToFirestore.');
             return;
         }
-        const guildRef = db.collection('guilds').doc(guild.id);
+        const guildRef = db.collection('servers').doc(guild.id);
         
         // Fetch all channels in the guild
         const channels = await guild.channels.fetch();
