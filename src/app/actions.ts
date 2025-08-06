@@ -5,44 +5,37 @@ import { db } from '@/lib/firebase-admin';
 import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import type { CustomCommand } from '@/lib/types';
 
-const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
-
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
 
 export const getGuildChannelsAction = cache(async (
   guildId: string
 ): Promise<DiscordChannel[]> => {
-  try {
-    const response = await fetch(`${DISCORD_API_BASE_URL}/guilds/${guildId}/channels`, {
-        headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
-    });
-    
-    if (!response.ok) {
-        console.error(`Erro ao buscar canais para o servidor ${guildId} na API do Discord. Status: ${response.status}`);
-        return [];
+    if (!db) {
+      console.warn('Firestore não está inicializado. Retornando array vazio para canais.');
+      return [];
     }
+  
+    const collectionRef = db.collection('discord_channels').doc(guildId).collection('channels');
+    const snapshot = await collectionRef.get();
 
-    const channels = await response.json() as DiscordChannel[];
-    return channels;
-
-  } catch (error) {
-    console.error(`Erro ao obter canais para o servidor ${guildId}:`, error);
+    if (!snapshot.empty) {
+        return snapshot.docs.map(doc => doc.data() as DiscordChannel);
+    }
+    
+    // Se não houver no cache, não faremos mais a chamada para a API do Discord aqui.
+    // A criação de canais e o salvamento serão tratados pelo bot.
     return [];
-  }
 });
 
 
 export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     try {
-        if (!process.env.DISCORD_BOT_TOKEN) {
-            throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
-        }
-
-        const response = await fetch(`${DISCORD_API_BASE_URL}/users/@me/guilds`, {
-             headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+        const response = await fetch(`${BOT_API_BASE_URL}/api/bot-guilds`, {
+             headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_BOT_API_SECRET}` },
         });
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch from Discord API. Status: ${response.status}`);
+            throw new Error(`Failed to fetch from Bot API. Status: ${response.status}`);
         }
 
         const guilds = await response.json();

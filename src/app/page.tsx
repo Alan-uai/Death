@@ -10,6 +10,7 @@ import { getBotGuildsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/lib/types';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -78,17 +79,16 @@ export default function Home() {
         }
 
         try {
-          const [userGuildsResponse, botGuildsResponse] = await Promise.all([
-            fetch('https://discord.com/api/v10/users/@me/guilds', {
-              headers: { Authorization: `Bearer ${token}` },
-            }),
-            getBotGuildsAction()
-          ]);
+          // Fetch user guilds from the bot's backend API
+          const userGuildsResponse = await fetch(`${BOT_API_BASE_URL}/api/servers`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          
+          const botGuildsResponse = await getBotGuildsAction();
 
           if (userGuildsResponse.ok) {
-            const userGuildsData: any[] = await userGuildsResponse.json();
-            const manageableGuilds = userGuildsData.filter(g => (parseInt(g.permissions) & 0x20) === 0x20);
-            setGuilds(manageableGuilds);
+            const userGuildsData: DiscordGuild[] = await userGuildsResponse.json();
+            setGuilds(userGuildsData);
           } else {
              if (userGuildsResponse.status === 401 || userGuildsResponse.status === 403) {
                 localStorage.removeItem('discord_access_token');
@@ -98,6 +98,7 @@ export default function Home() {
           
           const botGuildIds = botGuildsResponse.map(g => g.id);
           setBotGuilds(botGuildIds);
+
         } catch (error) {
           console.error('Erro ao buscar dados iniciais:', error);
         } finally {
@@ -253,5 +254,3 @@ export default function Home() {
       </main>
   );
 }
-
-    
