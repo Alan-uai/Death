@@ -1,4 +1,3 @@
-
 'use client';
 
 import { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
@@ -39,8 +38,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setPanelRegistrations(prev => ({...prev, [panelId]: registration}));
   }, []);
 
-  const discardChanges = useCallback(() => {
-    window.location.reload();
+    const discardChanges = useCallback(() => {
+        // This will trigger a re-render in the panels, which should reset their state
+        // to the initial data because their `key` will change or they will re-fetch.
+        // A simpler approach for now is just to reload, which is stateless.
+        window.location.reload();
   }, []);
 
   const saveChanges = async (guildId: string) => {
@@ -61,6 +63,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         title: 'Sucesso!',
         description: 'Todas as configurações foram salvas e enviadas para o bot.',
       });
+       // Reload to fetch the new initial state
        window.location.reload();
     } catch (error) {
       console.error('Falha ao salvar configurações:', error);
