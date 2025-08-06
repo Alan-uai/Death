@@ -49,7 +49,7 @@ if (!process.env.DISCORD_BOT_TOKEN) {
           name: guild.name,
           channels: channelData,
           addedAt: new Date(),
-        });
+        }, { merge: true }); // Use merge to avoid overwriting on re-adds
     
         console.log(`Successfully saved guild ${guild.name} (ID: ${guild.id}) and its channels to Firestore.`);
       } catch (error) {
