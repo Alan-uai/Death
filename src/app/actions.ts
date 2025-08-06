@@ -5,7 +5,7 @@ import { db } from '@/lib/firebase-admin';
 import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import type { CustomCommand } from '@/lib/types';
 
-const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
+const BOT_API_BASE_URL = process.env.BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
 
 export const getGuildChannelsAction = cache(async (
   guildId: string
