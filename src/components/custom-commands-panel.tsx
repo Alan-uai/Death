@@ -126,7 +126,8 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
                     {commandOptions.map(cmd => (
                       <SelectItem key={cmd.id} value={cmd.id}>{cmd.name}</SelectItem>
                     ))}
-                  </SelectContent>
+                  </S
+electContent>
                 </Select>
               </div>
 

@@ -23,16 +23,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const [initialData, setInitialData] = useState<Record<string, any>>({});
   const panelRegistrations = useRef<Record<string, PanelRegistration>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const { toast } = useToast();
-  
-  // We need a way to trigger re-renders when isDirty changes.
-  // A simple counter state is a good way to do this without complex dependencies.
-  const [dirtyCheck, setDirtyCheck] = useState(0);
-
-  const isDirty = useMemo(() => {
-    return Object.values(panelRegistrations.current).some(panel => panel.isDirty());
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dirtyCheck]);
 
   const getInitialData = useCallback(<T,>(panelId: string): T | undefined => {
     return initialData[panelId] as T | undefined;
@@ -40,8 +32,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const registerPanel = useCallback((panelId: string, registration: PanelRegistration) => {
     panelRegistrations.current[panelId] = registration;
-    // Force a check on the dirty state when a panel registers or its registration changes
-    setDirtyCheck(c => c + 1);
+    // Check dirty state when a panel registers or its dependencies change
+    const checkDirtyState = () => {
+        const dirty = Object.values(panelRegistrations.current).some(panel => panel.isDirty());
+        setIsDirty(dirty);
+    };
+    checkDirtyState();
   }, []);
 
   const discardChanges = useCallback(() => {
