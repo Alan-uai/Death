@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const DiscordChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.number(), // 0 for text, 2 for voice, 4 for category
+  type: z.number(), // 0 for text, 2 for voice, 4 for category, 15 for forum
 });
 export type DiscordChannel = z.infer<typeof DiscordChannelSchema>;
 
@@ -17,29 +17,51 @@ export const DiscordGuildSchema = z.object({
 });
 export type DiscordGuild = z.infer<typeof DiscordGuildSchema>;
 
-
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
+
+type DiscordApiOptions = {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    body?: object;
+};
 
 async function fetchDiscordApi<T>(
   endpoint: string,
   token: string,
-  isBotToken: boolean = true
+  options: DiscordApiOptions = {}
 ): Promise<T> {
+  const { method = 'GET', body } = options;
   const url = `${DISCORD_API_BASE_URL}${endpoint}`;
-  const authHeader = isBotToken ? `Bot ${token}` : `Bearer ${token}`;
   
-  const response = await fetch(url, {
-    headers: {
-      Authorization: authHeader,
-    },
-    // No cache to ensure data is always fresh
+  const headers: HeadersInit = {
+    Authorization: `Bot ${token}`,
+  };
+
+  const fetchOptions: RequestInit = {
+    method,
+    headers,
     cache: 'no-store',
-  });
+  };
+
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+    fetchOptions.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`Discord API Error: ${response.status} ${response.statusText}`, errorText);
-    throw new Error(`Failed to fetch from Discord API: ${endpoint}`);
+    console.error(`Discord API Error: ${response.status} ${response.statusText}`, {
+        url,
+        options,
+        errorBody: errorText,
+    });
+    throw new Error(`Failed to fetch from Discord API: ${endpoint}. Status: ${response.status}. Body: ${errorText}`);
+  }
+
+  // Some responses might be empty (e.g., 204 No Content)
+  if (response.status === 204) {
+    return null as T;
   }
 
   return response.json() as T;
@@ -47,34 +69,63 @@ async function fetchDiscordApi<T>(
 
 export async function getGuildChannels(
   guildId: string
-): Promise<DiscordChannel[]> {
-  // We must use a bot token to fetch channels for a specific guild.
-  // The user's bearer token from OAuth does not have permission for this.
+): Promise<{ channels: DiscordChannel[] }> {
   if (!process.env.DISCORD_BOT_TOKEN) {
-    console.error('DISCORD_BOT_TOKEN is not set. Cannot fetch guild channels.');
     throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
   }
 
   const channels = await fetchDiscordApi<DiscordChannel[]>(
     `/guilds/${guildId}/channels`,
-    process.env.DISCORD_BOT_TOKEN,
-    true // This is a Bot token
+    process.env.DISCORD_BOT_TOKEN
   );
 
-  return channels;
+  return { channels };
 }
 
 export async function getBotGuilds(): Promise<DiscordGuild[]> {
     if (!process.env.DISCORD_BOT_TOKEN) {
-        console.error('DISCORD_BOT_TOKEN is not set. Cannot fetch bot guilds.');
         throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
     }
 
     const guilds = await fetchDiscordApi<DiscordGuild[]>(
         '/users/@me/guilds',
-        process.env.DISCORD_BOT_TOKEN,
-        true // This is a Bot token
+        process.env.DISCORD_BOT_TOKEN
     );
 
     return guilds;
+}
+
+interface CreateChannelPayload {
+    name: string;
+    type: number;
+    topic?: string;
+    default_reaction_emoji?: {
+        emoji_id: string | null;
+        emoji_name: string | null;
+    };
+    available_tags?: {
+        name: string;
+        emoji_id?: string | null;
+        emoji_name?: string | null;
+    }[];
+}
+
+export async function createGuildChannel(
+  guildId: string,
+  payload: CreateChannelPayload
+): Promise<DiscordChannel> {
+   if (!process.env.DISCORD_BOT_TOKEN) {
+    throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
+  }
+
+  const newChannel = await fetchDiscordApi<DiscordChannel>(
+    `/guilds/${guildId}/channels`,
+    process.env.DISCORD_BOT_TOKEN,
+    {
+      method: 'POST',
+      body: payload,
+    }
+  );
+
+  return newChannel;
 }

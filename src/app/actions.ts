@@ -12,6 +12,11 @@ import {
   type SuggestInGameBuildInput,
 } from '@/ai/flows/suggest-in-game-build';
 import { getGuildChannels } from '@/ai/flows/get-guild-channels';
+import { 
+  manageSuggestionChannel,
+  type ManageSuggestionChannelInput,
+  type ManageSuggestionChannelOutput,
+} from '@/ai/flows/manage-suggestion-channel';
 import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
 import { registerGuildCommands } from '@/services/discord-commands';
@@ -113,4 +118,20 @@ export async function registerCommandsAction(guildId: string): Promise<boolean> 
         console.error(`Erro ao registrar comandos para o servidor ${guildId}:`, error);
         return false;
     }
+}
+
+export async function manageSuggestionChannelAction(
+  input: ManageSuggestionChannelInput
+): Promise<ManageSuggestionChannelOutput> {
+  try {
+    const result = await manageSuggestionChannel(input);
+    return result;
+  } catch (error) {
+    console.error('Erro na ação manageSuggestionChannelAction:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
+    return {
+      success: false,
+      message: `Falha ao gerenciar canal de sugestões: ${errorMessage}`,
+    };
+  }
 }

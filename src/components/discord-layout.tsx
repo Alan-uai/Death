@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bot, Cog, MessageSquare, Plus, Users, BarChart, Menu } from 'lucide-react';
+import { ArrowLeft, Bot, Cog, MessageSquare, Plus, Users, BarChart, Menu, Landmark } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -37,6 +37,15 @@ const panelComponents: Record<Panel, React.FC<any>> = {
     analytics: AnalyticsPanel,
 };
 
+const navItems = [
+    { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
+    { id: 'settings', label: 'Configurações', icon: Cog },
+    { id: 'commands', label: 'Comandos Customizados', icon: Users },
+    { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
+    { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
+    { id: 'analytics', label: 'Analytics', icon: BarChart },
+];
+
 export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
@@ -70,55 +79,20 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
 
   const renderNav = () => (
     <nav className="flex flex-col space-y-2 p-4">
-      <h2 className="mb-4 text-lg font-semibold">Painel</h2>
-      <Button
-        variant={activePanel === 'chat' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('chat')}
-      >
-        <MessageSquare className="mr-2 h-5 w-5" />
-        Simulador de Chat
-      </Button>
-      <Button
-        variant={activePanel === 'settings' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('settings')}
-      >
-        <Cog className="mr-2 h-5 w-5" />
-        Configurações
-      </Button>
-      <Button
-        variant={activePanel === 'commands' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('commands')}
-      >
-        <Users className="mr-2 h-5 w-5" />
-        Comandos Customizados
-      </Button>
-      <Button
-        variant={activePanel === 'channels' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('channels')}
-      >
-        <Plus className="mr-2 h-5 w-5" />
-        Gerenciador de Canais
-      </Button>
-       <Button
-        variant={activePanel === 'personality' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('personality')}
-      >
-        <Bot className="mr-2 h-5 w-5" />
-        Personalidade do Bot
-      </Button>
-      <Button
-        variant={activePanel === 'analytics' ? 'secondary' : 'ghost'}
-        className="w-full justify-start"
-        onClick={() => handlePanelChange('analytics')}
-      >
-        <BarChart className="mr-2 h-5 w-5" />
-        Analytics
-      </Button>
+      <h2 className="mb-4 px-2 text-lg font-semibold tracking-tight">Painel</h2>
+      <div className="space-y-1">
+         {navItems.map(item => (
+            <Button
+                key={item.id}
+                variant={activePanel === item.id ? 'secondary' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => handlePanelChange(item.id as Panel)}
+            >
+                <item.icon className="mr-2 h-4 w-4" />
+                {item.label}
+            </Button>
+        ))}
+      </div>
     </nav>
   );
 
@@ -138,7 +112,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
                         <Menu className="h-6 w-6" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-60 bg-[#2f3136] border-r border-black/20 p-0 pt-4">
+                    <SheetContent side="left" className="w-[240px] bg-[#2f3136] border-r border-black/20 p-0 pt-4">
                       {renderNav()}
                     </SheetContent>
                   </Sheet>
@@ -174,7 +148,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
             
             {/* Panel Content */}
             <main className="flex-1 overflow-y-auto">
-              <ActivePanelComponent channels={channels} />
+              <ActivePanelComponent channels={channels} guildId={guild.id} />
             </main>
           </div>
         </div>
