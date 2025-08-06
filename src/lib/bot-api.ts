@@ -3,7 +3,7 @@
 import type { CustomCommand } from './types';
 
 // This should point to your bot's backend server
-const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
 const API_SECRET = process.env.NEXT_PUBLIC_BOT_API_SECRET;
 
 async function postToBotApi(endpoint: string, body: object) {

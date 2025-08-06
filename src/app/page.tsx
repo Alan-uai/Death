@@ -11,7 +11,7 @@ import type { DiscordGuild } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
-const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
