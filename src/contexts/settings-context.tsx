@@ -47,7 +47,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 
   const saveChanges = async (guildId: string) => {
     setIsSaving(true);
-    
+    let success = false;
+
     const panelsToSave = Object.entries(panelRegistrations).filter(([_, panel]) => panel.isDirty());
 
     const promises = panelsToSave.map(([_, panel]) => {
@@ -63,8 +64,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         title: 'Sucesso!',
         description: 'Todas as configurações foram salvas e enviadas para o bot.',
       });
-       // Reload to fetch the new initial state
-       window.location.reload();
+      success = true;
     } catch (error) {
       console.error('Falha ao salvar configurações:', error);
       toast({
@@ -72,8 +72,13 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         title: 'Erro ao Salvar',
         description: 'Não foi possível salvar uma ou mais configurações. Verifique o console para detalhes.',
       });
+      success = false;
     } finally {
       setIsSaving(false);
+      // Only reload if the save was successful to get the new state
+      if (success) {
+        window.location.reload();
+      }
     }
   };
 
