@@ -11,7 +11,7 @@ import {
   suggestInGameBuild,
   type SuggestInGameBuildInput,
 } from '@/ai/flows/suggest-in-game-build';
-import { getGuildChannels } from '@/ai/flows/get-guild-channels';
+import { getGuildChannels as getGuildChannelsFlow } from '@/ai/flows/get-guild-channels';
 import {
   manageSuggestionChannel,
   type ManageSuggestionChannelInput,
@@ -88,8 +88,8 @@ export const getGuildChannelsAction = cache(async (
         console.warn('[Firestore] DB não inicializado. Pulando a busca de canais no cache.')
     }
     
-    console.log(`[API Discord] Canais para o servidor ${guildId} não encontrados no cache do Firestore. Buscando na API.`);
-    const { channels } = await getGuildChannels({ guildId });
+    console.log(`[Discord API] Canais para o servidor ${guildId} não encontrados no cache do Firestore. Buscando na API.`);
+    const { channels } = await getGuildChannelsFlow({ guildId });
 
     if (db && channels.length > 0) {
         console.log(`[Firestore] Salvando canais buscados para o servidor ${guildId} no cache.`);
