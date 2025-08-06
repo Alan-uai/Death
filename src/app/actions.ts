@@ -8,9 +8,10 @@ import type { CustomCommand } from '@/lib/types';
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
-const fetchDiscordApi = cache(async (endpoint: string, token: string) => {
+// Cached fetch function to avoid rate limits
+const fetchDiscordApi = cache(async (endpoint: string, options: RequestInit) => {
     const res = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        ...options,
         next: { revalidate: 60 } // Cache for 60 seconds
     });
     if (!res.ok) {
@@ -24,15 +25,9 @@ const getBotGuilds = cache(async (): Promise<DiscordGuild[]> => {
     if (!BOT_TOKEN) {
         throw new Error("DISCORD_BOT_TOKEN is not configured.");
     }
-    const res = await fetch(`${DISCORD_API_BASE}/users/@me/guilds`, {
-        headers: { Authorization: `Bot ${BOT_TOKEN}` },
-        next: { revalidate: 60 } // Cache for 60 seconds
+    return fetchDiscordApi(`/users/@me/guilds`, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` }
     });
-     if (!res.ok) {
-        console.error(`Discord API Error (/users/@me/guilds for bot): ${res.status}`, await res.text());
-        throw new Error('Failed to fetch bot guilds from Discord API.');
-    }
-    return res.json();
 });
 
 export const getManageableGuildsAction = cache(async (
@@ -40,7 +35,7 @@ export const getManageableGuildsAction = cache(async (
 ): Promise<Array<DiscordGuild & { bot_present: boolean }>> => {
     try {
         const [userGuilds, botGuilds] = await Promise.all([
-            fetchDiscordApi(`/users/@me/guilds`, accessToken),
+             fetchDiscordApi(`/users/@me/guilds`, { headers: { Authorization: `Bearer ${accessToken}` } }),
             getBotGuilds()
         ]);
         
@@ -64,19 +59,36 @@ export const getManageableGuildsAction = cache(async (
 export const getGuildChannelsAction = cache(async (
   guildId: string
 ): Promise<DiscordChannel[]> => {
-    if (!db) {
-      console.warn('Firestore não está inicializado. Retornando array vazio para canais.');
-      return [];
-    }
-  
-    const collectionRef = db.collection('discord_channels').doc(guildId).collection('channels');
-    const snapshot = await collectionRef.get();
-
-    if (!snapshot.empty) {
-        return snapshot.docs.map(doc => doc.data() as DiscordChannel);
+    // 1. First, try to get channels from Firestore (the "fast path")
+    if (db) {
+      try {
+        const collectionRef = db.collection('discord_channels').doc(guildId).collection('channels');
+        const snapshot = await collectionRef.get();
+        if (!snapshot.empty) {
+            return snapshot.docs.map(doc => doc.data() as DiscordChannel);
+        }
+      } catch (error) {
+        console.warn('Could not fetch channels from Firestore, falling back to Discord API.', error);
+      }
+    } else {
+        console.warn('Firestore not initialized. Falling back to Discord API.');
     }
     
-    return [];
+    // 2. If Firestore is empty or fails, fall back to a direct Discord API call
+    console.log(`Fallback: Fetching channels for guild ${guildId} directly from Discord API.`);
+    if (!BOT_TOKEN) {
+        console.error("DISCORD_BOT_TOKEN is not configured. Cannot fetch channels from API.");
+        return [];
+    }
+    try {
+        const channels = await fetchDiscordApi(`/guilds/${guildId}/channels`, {
+            headers: { Authorization: `Bot ${BOT_TOKEN}` }
+        });
+        return channels.filter((c: DiscordChannel) => c.type === 0 || c.type === 15); // Return only text and forum channels
+    } catch (error) {
+        console.error(`Failed to fetch channels for guild ${guildId} from Discord API:`, error);
+        return [];
+    }
 });
 
 export const getCustomCommandAction = cache(async (
