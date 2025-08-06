@@ -30,7 +30,7 @@ export const getGuildChannelsAction = cache(async (
 
 export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     try {
-        const response = await fetch(`${BOT_API_BASE_URL}/api/bot-guilds`, {
+        const response = await fetch(`${BOT_API_BASE_URL}/api/guilds`, {
              headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_BOT_API_SECRET}` },
         });
 
