@@ -16,7 +16,11 @@ const PANEL_ID = 'channelManagement';
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
 
-  const initialSettings = getInitialData(PANEL_ID) || {
+  const initialSettings = getInitialData<{
+      mode: ManagementMode;
+      suggestions: { enabled: boolean };
+      reports: { enabled: boolean };
+  }>(PANEL_ID) || {
       mode: 'slash',
       suggestions: { enabled: false },
       reports: { enabled: false },
@@ -26,34 +30,27 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const [enableSuggestions, setEnableSuggestions] = useState(initialSettings.suggestions.enabled);
   const [enableReports, setEnableReports] = useState(initialSettings.reports.enabled);
 
-  const isPanelDirty = () => {
-    return (
+  const checkIsDirty = () => {
+    const dirty = (
       mode !== initialSettings.mode ||
       enableSuggestions !== initialSettings.suggestions.enabled ||
       enableReports !== initialSettings.reports.enabled
     );
+    if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
+    return dirty;
   };
   
   useEffect(() => {
     registerPanel(PANEL_ID, {
-        onSave: (guildId) => saveChannelConfig(guildId, {
+        onSave: () => saveChannelConfig(guildId, {
             mode,
             suggestions: { enabled: enableSuggestions },
             reports: { enabled: enableReports }
         }),
-        isDirty: isPanelDirty(),
+        isDirty: checkIsDirty,
     });
   }, [registerPanel, mode, enableSuggestions, enableReports, initialSettings]);
   
-  useEffect(() => {
-    if (isPanelDirty()) {
-      markAsDirty(PANEL_ID);
-    } else {
-      markAsClean(PANEL_ID);
-    }
-  }, [mode, enableSuggestions, enableReports, initialSettings, markAsDirty, markAsClean]);
-
-
   const showChannels = mode === 'channels' || mode === 'both';
   const showSlashInfo = mode === 'slash' || mode === 'both';
 

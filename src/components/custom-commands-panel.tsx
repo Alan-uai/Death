@@ -51,23 +51,24 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     },
   });
 
+  const checkIsDirty = () => {
+      if (methods.formState.isDirty) {
+          markAsDirty(PANEL_ID);
+          return true;
+      }
+      markAsClean(PANEL_ID);
+      return false;
+  }
+
   useEffect(() => {
     registerPanel(PANEL_ID, {
-        onSave: (guildId) => {
+        onSave: () => {
             const values = methods.getValues();
             return saveCommandConfig(guildId, values);
         },
-        isDirty: methods.formState.isDirty,
+        isDirty: checkIsDirty,
     });
   }, [registerPanel, methods]);
-
-  useEffect(() => {
-    if (methods.formState.isDirty) {
-        markAsDirty(PANEL_ID);
-    } else {
-        markAsClean(PANEL_ID);
-    }
-  }, [methods.formState.isDirty, markAsDirty, markAsClean]);
 
   useEffect(() => {
     const fetchCommandData = async () => {

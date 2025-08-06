@@ -26,7 +26,7 @@ const personalityPrompts: Record<Personality, string> = {
 };
 
 export function BotPersonalityPanel({ guildId }: { guildId: string }) {
-    const { registerPanel, getInitialData, markAsDirty, markAsClean } = useSettings();
+    const { registerPanel, getInitialData, isDirty, markAsDirty, markAsClean } = useSettings();
 
     const initialSettings = getInitialData<{ personality: Personality; customPrompt: string }>(PANEL_ID) || {
         personality: 'amigavel',
@@ -36,27 +36,21 @@ export function BotPersonalityPanel({ guildId }: { guildId: string }) {
     const [personality, setPersonality] = useState<Personality>(initialSettings.personality);
     const [customPrompt, setCustomPrompt] = useState(initialSettings.customPrompt || personalityPrompts[personality]);
 
-    const isPanelDirty = () => {
-        return personality !== initialSettings.personality || customPrompt !== initialSettings.customPrompt;
+    const checkIsDirty = () => {
+        const dirty = personality !== initialSettings.personality || customPrompt !== initialSettings.customPrompt;
+        if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
+        return dirty;
     };
     
     useEffect(() => {
         registerPanel(PANEL_ID, {
-            onSave: (guildId) => saveGenericConfig(guildId, {
+            onSave: () => saveGenericConfig(guildId, {
                 personality,
                 customPrompt
             }),
-            isDirty: isPanelDirty(),
+            isDirty: checkIsDirty,
         });
     }, [registerPanel, personality, customPrompt, initialSettings]);
-
-    useEffect(() => {
-        if (isPanelDirty()) {
-            markAsDirty(PANEL_ID);
-        } else {
-            markAsClean(PANEL_ID);
-        }
-    }, [personality, customPrompt, initialSettings, markAsDirty, markAsClean]);
 
 
     const handlePersonalityChange = (newPersonality: Personality) => {

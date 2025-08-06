@@ -19,7 +19,10 @@ const PANEL_ID = 'genericSettings';
 export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
   
-  const initialSettings = getInitialData(PANEL_ID) || {
+  const initialSettings = getInitialData<{
+    qaChannel: string;
+    buildsChannel: string;
+  }>(PANEL_ID) || {
     qaChannel: 'any',
     buildsChannel: 'any'
   };
@@ -29,21 +32,19 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   
   const textChannels = channels.filter(c => c.type === 0);
 
+  const checkIsDirty = () => {
+    const dirty = qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
+    if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
+    return dirty;
+  };
+
   useEffect(() => {
     registerPanel(PANEL_ID, {
-        onSave: (guildId) => saveGenericConfig(guildId, { qaChannel, buildsChannel }),
-        isDirty: qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel,
+        onSave: () => saveGenericConfig(guildId, { qaChannel, buildsChannel }),
+        isDirty: checkIsDirty,
     });
   }, [registerPanel, qaChannel, buildsChannel, initialSettings]);
 
-  useEffect(() => {
-    const isDirty = qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
-    if (isDirty) {
-      markAsDirty(PANEL_ID);
-    } else {
-      markAsClean(PANEL_ID);
-    }
-  }, [qaChannel, buildsChannel, initialSettings, markAsDirty, markAsClean]);
 
   return (
     <div className="p-4 md:p-6">
