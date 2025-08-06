@@ -17,47 +17,33 @@ interface SettingsPanelProps {
 const PANEL_ID = 'genericSettings';
 
 export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
-  const { updateSetting, registerPanel, getSetting } = useSettings();
-  const [qaChannel, setQaChannel] = useState<string>('any');
-  const [buildsChannel, setBuildsChannel] = useState<string>('any');
+  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
+  
+  const initialSettings = getInitialData(PANEL_ID) || {
+    qaChannel: 'any',
+    buildsChannel: 'any'
+  };
+
+  const [qaChannel, setQaChannel] = useState<string>(initialSettings.qaChannel);
+  const [buildsChannel, setBuildsChannel] = useState<string>(initialSettings.buildsChannel);
   
   const textChannels = channels.filter(c => c.type === 0);
 
   useEffect(() => {
-    registerPanel(PANEL_ID, (guildId, data) => saveGenericConfig(guildId, data));
-  }, [registerPanel]);
-
+    registerPanel(PANEL_ID, {
+        onSave: (guildId) => saveGenericConfig(guildId, { qaChannel, buildsChannel }),
+        isDirty: qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel,
+    });
+  }, [registerPanel, qaChannel, buildsChannel, initialSettings]);
 
   useEffect(() => {
-    // In a real app, you would fetch these settings from your bot's backend
-    // For now, we use localStorage as a fallback for initial state
-    const savedQaChannel = localStorage.getItem(`settings_qaChannel_${guildId}`) || 'any';
-    const savedBuildsChannel = localStorage.getItem(`settings_buildsChannel_${guildId}`) || 'any';
-    
-    // Set initial state for the panel
-    const initialQa = getSetting<string>('qaChannel') ?? savedQaChannel;
-    const initialBuilds = getSetting<string>('buildsChannel') ?? savedBuildsChannel;
-
-    setQaChannel(initialQa);
-    setBuildsChannel(initialBuilds);
-
-    // Set initial settings in the context if not already there
-    updateSetting(PANEL_ID, {
-      qaChannel: initialQa,
-      buildsChannel: initialBuilds,
-    });
-  }, [guildId, getSetting, updateSetting]);
-
-  const handleQaChange = (value: string) => {
-    setQaChannel(value);
-    updateSetting(PANEL_ID, { qaChannel: value, buildsChannel });
-  };
-
-  const handleBuildsChange = (value: string) => {
-    setBuildsChannel(value);
-    updateSetting(PANEL_ID, { qaChannel, buildsChannel: value });
-  };
-
+    const isDirty = qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
+    if (isDirty) {
+      markAsDirty(PANEL_ID);
+    } else {
+      markAsClean(PANEL_ID);
+    }
+  }, [qaChannel, buildsChannel, initialSettings, markAsDirty, markAsClean]);
 
   return (
     <div className="p-4 md:p-6">
@@ -76,7 +62,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
               <p className="text-sm text-muted-foreground">
                 Selecione um canal onde o bot responderá a perguntas. Escolha "Qualquer Canal" para permitir perguntas em todos os lugares.
               </p>
-              <Select value={qaChannel} onValueChange={handleQaChange}>
+              <Select value={qaChannel} onValueChange={setQaChannel}>
                 <SelectTrigger id="qa-channel" className="w-full md:w-[300px]">
                   <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>
@@ -96,7 +82,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
               <p className="text-sm text-muted-foreground">
                 Selecione um canal para sugestões de build. Escolha "Qualquer Canal" para permitir este comando em todos os lugares.
               </p>
-              <Select value={buildsChannel} onValueChange={handleBuildsChange}>
+              <Select value={buildsChannel} onValueChange={setBuildsChannel}>
                 <SelectTrigger id="builds-channel" className="w-full md:w-[300px]">
                   <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>

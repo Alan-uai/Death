@@ -14,33 +14,45 @@ type ManagementMode = 'slash' | 'channels' | 'both';
 const PANEL_ID = 'channelManagement';
 
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
-  const { updateSetting, registerPanel, getSetting } = useSettings();
+  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
 
-  const [mode, setMode] = useState<ManagementMode>('slash');
-  const [enableSuggestions, setEnableSuggestions] = useState(false);
-  const [enableReports, setEnableReports] = useState(false);
+  const initialSettings = getInitialData(PANEL_ID) || {
+      mode: 'slash',
+      suggestions: { enabled: false },
+      reports: { enabled: false },
+  };
 
-  useEffect(() => {
-    registerPanel(PANEL_ID, (guildId, data) => saveChannelConfig(guildId, data));
-  }, [registerPanel]);
+  const [mode, setMode] = useState<ManagementMode>(initialSettings.mode);
+  const [enableSuggestions, setEnableSuggestions] = useState(initialSettings.suggestions.enabled);
+  const [enableReports, setEnableReports] = useState(initialSettings.reports.enabled);
 
-  useEffect(() => {
-     const savedSettings = getSetting<any>(PANEL_ID);
-     if (savedSettings) {
-        setMode(savedSettings.mode || 'slash');
-        setEnableSuggestions(savedSettings.suggestions?.enabled || false);
-        setEnableReports(savedSettings.reports?.enabled || false);
-     }
-  }, [getSetting]);
+  const isPanelDirty = () => {
+    return (
+      mode !== initialSettings.mode ||
+      enableSuggestions !== initialSettings.suggestions.enabled ||
+      enableReports !== initialSettings.reports.enabled
+    );
+  };
   
   useEffect(() => {
-    const currentSettings = {
-      mode,
-      suggestions: { enabled: enableSuggestions },
-      reports: { enabled: enableReports }
-    };
-    updateSetting(PANEL_ID, currentSettings);
-  }, [mode, enableSuggestions, enableReports, updateSetting]);
+    registerPanel(PANEL_ID, {
+        onSave: (guildId) => saveChannelConfig(guildId, {
+            mode,
+            suggestions: { enabled: enableSuggestions },
+            reports: { enabled: enableReports }
+        }),
+        isDirty: isPanelDirty(),
+    });
+  }, [registerPanel, mode, enableSuggestions, enableReports, initialSettings]);
+  
+  useEffect(() => {
+    if (isPanelDirty()) {
+      markAsDirty(PANEL_ID);
+    } else {
+      markAsClean(PANEL_ID);
+    }
+  }, [mode, enableSuggestions, enableReports, initialSettings, markAsDirty, markAsClean]);
+
 
   const showChannels = mode === 'channels' || mode === 'both';
   const showSlashInfo = mode === 'slash' || mode === 'both';

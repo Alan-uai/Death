@@ -1,65 +1,79 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-type SettingsValue = Record<string, any>;
+type PanelRegistration = {
+    onSave: (guildId: string) => Promise<any>;
+    isDirty: boolean;
+};
 
 interface SettingsContextType {
-  isDirty: boolean;
   isSaving: boolean;
-  updateSetting: (key: string, value: SettingsValue) => void;
-  getSetting: <T>(key: string) => T | undefined;
+  isDirty: boolean;
+  getInitialData: <T>(panelId: string) => T | undefined;
+  markAsDirty: (panelId: string) => void;
+  markAsClean: (panelId: string) => void;
   saveChanges: (guildId: string) => Promise<void>;
   discardChanges: () => void;
-  registerPanel: (panelId: string, onSave: (guildId: string, data: any) => Promise<any>) => void;
+  registerPanel: (panelId: string, registration: PanelRegistration) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
-  const [initialSettings, setInitialSettings] = useState<Record<string, SettingsValue>>({});
-  const [dirtySettings, setDirtySettings] = useState<Record<string, SettingsValue>>({});
-  const [panelSavers, setPanelSavers] = useState<Record<string, (guildId: string, data: any) => Promise<any>>>({});
+  const [initialData, setInitialData] = useState<Record<string, any>>({});
+  const [dirtyPanels, setDirtyPanels] = useState<Set<string>>(new Set());
+  const [panelRegistrations, setPanelRegistrations] = useState<Record<string, PanelRegistration>>({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
-  const isDirty = Object.keys(dirtySettings).length > 0;
+  const isDirty = useMemo(() => {
+    // A interface está "suja" se qualquer painel registrado se considerar "sujo".
+    return Object.values(panelRegistrations).some(p => p.isDirty);
+  }, [panelRegistrations]);
 
-  const updateSetting = useCallback((key: string, value: SettingsValue) => {
-    // If the setting is not in initialSettings, set it.
-    // This happens on the first render of a panel.
-    setInitialSettings(prev => {
-        if (!prev[key]) {
-            return { ...prev, [key]: value };
-        }
-        return prev;
-    });
-    setDirtySettings(prev => ({ ...prev, [key]: value }));
+
+  const getInitialData = useCallback(<T,>(panelId: string): T | undefined => {
+    return initialData[panelId] as T | undefined;
+  }, [initialData]);
+
+  const markAsDirty = useCallback((panelId: string) => {
+    setDirtyPanels(prev => new Set(prev).add(panelId));
   }, []);
 
-  const getSetting = useCallback(<T>(key: string): T | undefined => {
-    return (dirtySettings[key] ?? initialSettings[key]) as T | undefined;
-  }, [dirtySettings, initialSettings]);
-
-
-  const discardChanges = useCallback(() => {
-    setDirtySettings({});
+  const markAsClean = useCallback((panelId: string) => {
+    setDirtyPanels(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(panelId);
+        return newSet;
+    });
   }, []);
   
-  const registerPanel = useCallback((panelId: string, onSave: (guildId: string, data: any) => Promise<any>) => {
-    setPanelSavers(prev => ({...prev, [panelId]: onSave}));
+  const registerPanel = useCallback((panelId: string, registration: PanelRegistration) => {
+    setPanelRegistrations(prev => ({...prev, [panelId]: registration}));
+    // Se um painel se registrar como sujo inicialmente
+    if (registration.isDirty) {
+        markAsDirty(panelId);
+    }
+  }, [markAsDirty]);
+
+  const discardChanges = useCallback(() => {
+    // Isso irá forçar um re-render dos painéis, que irão resetar para os seus estados iniciais.
+    // A maneira mais simples de fazer isso é recarregar a página, descartando todo o estado do cliente.
+    window.location.reload();
   }, []);
 
   const saveChanges = async (guildId: string) => {
     setIsSaving(true);
-    const promises = Object.entries(dirtySettings).map(([key, data]) => {
-      const saver = panelSavers[key];
-      if (saver) {
-        return saver(guildId, data);
+    
+    const panelsToSave = Object.entries(panelRegistrations).filter(([_, panel]) => panel.isDirty);
+    
+    const promises = panelsToSave.map(([_, panel]) => {
+      if (panel.onSave) {
+        return panel.onSave(guildId);
       }
-      console.warn(`No saver registered for panel key: ${key}`);
       return Promise.resolve();
     });
 
@@ -69,9 +83,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         title: 'Sucesso!',
         description: 'Todas as configurações foram salvas e enviadas para o bot.',
       });
-      // Merge dirty settings into initial settings and clear dirty state
-      setInitialSettings(prev => ({ ...prev, ...dirtySettings }));
-      setDirtySettings({});
+      // Força um reload para buscar os novos dados "iniciais" e limpar o estado sujo.
+       window.location.reload();
     } catch (error) {
       console.error('Falha ao salvar configurações:', error);
       toast({
@@ -84,12 +97,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-
   const value = {
-    isDirty,
     isSaving,
-    updateSetting,
-    getSetting,
+    isDirty,
+    getInitialData,
+    markAsDirty,
+    markAsClean,
     saveChanges,
     discardChanges,
     registerPanel,

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, FormProvider, useWatch } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useSettings } from '@/contexts/settings-context';
-import { Button } from './ui/button';
 
 
 const commandOptions = [
@@ -34,13 +33,13 @@ const commandOptions = [
 const PANEL_ID = 'customCommands';
 
 export function CustomCommandsPanel({ guildId }: { guildId: string }) {
-  const { updateSetting, registerPanel } = useSettings();
+  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
   const [selectedCommandId, setSelectedCommandId] = useState<string>('q-and-a');
   const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm<CustomCommand>({
     resolver: zodResolver(CustomCommandSchema),
-    defaultValues: {
+    defaultValues: getInitialData(PANEL_ID) || {
       id: 'q-and-a',
       name: 'Perguntas e Respostas',
       description: 'Resposta padrão ao ser mencionado.',
@@ -52,25 +51,30 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     },
   });
 
-  const watchedFields = useWatch({ control: methods.control });
-
   useEffect(() => {
-    registerPanel(PANEL_ID, (guildId, data) => saveCommandConfig(guildId, data as CustomCommand));
-  }, [registerPanel]);
-  
+    registerPanel(PANEL_ID, {
+        onSave: (guildId) => {
+            const values = methods.getValues();
+            return saveCommandConfig(guildId, values);
+        },
+        isDirty: methods.formState.isDirty,
+    });
+  }, [registerPanel, methods]);
+
   useEffect(() => {
     if (methods.formState.isDirty) {
-      updateSetting(PANEL_ID, methods.getValues());
+        markAsDirty(PANEL_ID);
+    } else {
+        markAsClean(PANEL_ID);
     }
-  }, [watchedFields, methods, updateSetting]);
-
+  }, [methods.formState.isDirty, markAsDirty, markAsClean]);
 
   useEffect(() => {
     const fetchCommandData = async () => {
       if (!selectedCommandId) return;
 
       const isNewCommand = selectedCommandId === 'novo-comando';
-      methods.reset(undefined, { keepDirty: false, keepValues: false }); // Limpa o formulário
+      methods.reset(undefined, { keepDirty: false, keepValues: false });
 
       if (isNewCommand) {
          methods.reset({
