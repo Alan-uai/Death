@@ -28,13 +28,14 @@ export const getGuildChannelsAction = cache(async (
 });
 
 
-export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
+export async function getManageableGuildsAction(accessToken: string): Promise<DiscordGuild[]> {
     try {
         const response = await fetch(`${BOT_API_BASE_URL}/api/guilds`, {
-             headers: { Authorization: `Bearer ${process.env.BOT_API_SECRET}` },
+             headers: { Authorization: `Bearer ${accessToken}` },
         });
 
         if (!response.ok) {
+            console.error('Failed to fetch from Bot API.', await response.text());
             throw new Error(`Failed to fetch from Bot API. Status: ${response.status}`);
         }
 
@@ -42,7 +43,7 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
         return guilds as DiscordGuild[];
 
     } catch (error) {
-        console.error('Erro ao obter servidores do bot:', error);
+        console.error('Erro ao obter servidores gerenciáveis do bot:', error);
         return [];
     }
 }

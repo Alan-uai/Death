@@ -6,28 +6,23 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getBotGuildsAction } from '@/app/actions';
+import { getManageableGuildsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
-const BOT_API_BASE_URL = process.env.BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [guilds, setGuilds] = useState<DiscordGuild[]>([]);
-  const [botGuilds, setBotGuilds] = useState<string[]>([]);
   const [selectedGuild, setSelectedGuild] = useState<DiscordGuild | null>(null);
   const [oauthUrl, setOauthUrl] = useState('');
-  const [botInviteBaseUrl, setBotInviteBaseUrl] = useState('');
-  const [showInviteMessage, setShowInviteMessage] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const redirectUri = window.location.origin;
     setOauthUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify%20guilds`);
-    setBotInviteBaseUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&permissions=8&scope=bot%20applications.commands`);
-
+    
     const hash = window.location.hash;
     if (hash) {
       const params = new URLSearchParams(hash.substring(1));
@@ -51,26 +46,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const checkPendingInvite = async () => {
-        const pendingGuildId = localStorage.getItem('pending_guild_id');
-        if (pendingGuildId) {
-          const currentBotGuilds = await getBotGuildsAction();
-          const currentBotGuildIds = currentBotGuilds.map(g => g.id);
-          setBotGuilds(currentBotGuildIds);
-
-          if (currentBotGuildIds.includes(pendingGuildId)) {
-            localStorage.removeItem('pending_guild_id');
-            setShowInviteMessage(false);
-            const guild = guilds.find(g => g.id === pendingGuildId);
-            if (guild) {
-              handleSelect(guild);
-            }
-          }
-        }
-    };
-
     if (isLoggedIn && !selectedGuild) {
-      const fetchInitialData = async () => {
+      const fetchGuilds = async () => {
         setIsLoading(true);
         const token = localStorage.getItem('discord_access_token');
         if (!token) {
@@ -80,48 +57,22 @@ export default function Home() {
         }
 
         try {
-          // Fetch user guilds from the bot's backend API
-          const userGuildsResponse = await fetch(`${BOT_API_BASE_URL}/api/servers`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          
-          const botGuildsResponse = await getBotGuildsAction();
-
-          if (userGuildsResponse.ok) {
-            const userGuildsData: DiscordGuild[] = await userGuildsResponse.json();
-            setGuilds(userGuildsData);
-          } else {
-             if (userGuildsResponse.status === 401 || userGuildsResponse.status === 403) {
-                localStorage.removeItem('discord_access_token');
-                setIsLoggedIn(false);
-             }
-          }
-          
-          const botGuildIds = botGuildsResponse.map(g => g.id);
-          setBotGuilds(botGuildIds);
-
+          const manageableGuilds = await getManageableGuildsAction(token);
+          setGuilds(manageableGuilds);
         } catch (error) {
-          console.error('Erro ao buscar dados iniciais:', error);
+          console.error('Erro ao buscar servidores gerenciáveis:', error);
+          // Handle token expiration or invalidation
+          localStorage.removeItem('discord_access_token');
+          setIsLoggedIn(false);
         } finally {
             setIsLoading(false);
         }
       };
-      fetchInitialData();
-    } else if(!isLoggedIn) {
+      fetchGuilds();
+    } else {
         setIsLoading(false);
     }
-    
-    const interval = setInterval(() => {
-        if (localStorage.getItem('pending_guild_id')) {
-            checkPendingInvite();
-        } else {
-            clearInterval(interval);
-        }
-    }, 5000);
-
-    return () => clearInterval(interval);
-
-  }, [isLoggedIn, selectedGuild, guilds]);
+  }, [isLoggedIn, selectedGuild]);
 
   const handleLogin = () => {
     if (oauthUrl) {
@@ -136,15 +87,6 @@ export default function Home() {
     setGuilds([]);
     setSelectedGuild(null);
   };
-  
-  const handleInvite = (guild: DiscordGuild) => {
-    if (botInviteBaseUrl) {
-      const inviteUrl = `${botInviteBaseUrl}&guild_id=${guild.id}&disable_guild_select=true`;
-      localStorage.setItem('pending_guild_id', guild.id);
-      window.open(inviteUrl, '_blank');
-      setShowInviteMessage(true);
-    }
-  };
 
   const handleSelect = (guild: DiscordGuild) => {
     localStorage.setItem('selected_guild', JSON.stringify(guild));
@@ -154,7 +96,6 @@ export default function Home() {
   const handleGoBack = () => {
     localStorage.removeItem('selected_guild');
     setSelectedGuild(null);
-    setShowInviteMessage(false);
   };
   
   if (selectedGuild) {
@@ -211,18 +152,13 @@ export default function Home() {
               <CardHeader>
                   <CardTitle>Selecione um Servidor</CardTitle>
                   <CardDescription className="text-muted-foreground">
-                      {showInviteMessage 
-                        ? 'Após adicionar o bot, esta página será atualizada automaticamente.'
-                        : "Escolha um servidor para convidar o bot, ou selecione um onde ele já está presente."
-                      }
+                      Escolha um servidor para configurar. Somente servidores onde o bot já está presente e você tem permissão aparecerão.
                   </CardDescription>
               </CardHeader>
               <CardContent className="max-h-96 overflow-y-auto">
                   <div className="space-y-2">
                       {guilds.length > 0 ? (
-                          guilds.map(guild => {
-                            const isBotMember = botGuilds.includes(guild.id);
-                            return (
+                          guilds.map(guild => (
                               <div key={guild.id} className="flex items-center justify-between rounded-lg bg-secondary p-3">
                                   <div className="flex items-center space-x-3">
                                       {guild.icon ? (
@@ -234,20 +170,13 @@ export default function Home() {
                                       )}
                                       <span className="font-medium">{guild.name}</span>
                                   </div>
-                                  {isBotMember ? (
-                                    <Button onClick={() => handleSelect(guild)} className="bg-green-600 hover:bg-green-700">
-                                      Selecionar
-                                    </Button>
-                                  ) : (
-                                    <Button onClick={() => handleInvite(guild)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
-                                        Adicionar Bot
-                                    </Button>
-                                  )}
+                                  <Button onClick={() => handleSelect(guild)} className="bg-primary hover:bg-primary/80">
+                                      Configurar
+                                  </Button>
                               </div>
-                            )
-                          })
+                          ))
                       ) : (
-                          <p className="text-muted-foreground">Nenhum servidor gerenciável encontrado. Certifique-se de estar logado na conta correta do Discord e ter permissões de 'Gerenciar Servidor'.</p>
+                          <p className="text-muted-foreground">Nenhum servidor gerenciável encontrado. Certifique-se de que o bot está em um servidor onde você tem permissão de 'Gerenciar Servidor'.</p>
                       )}
                   </div>
               </CardContent>
