@@ -1,54 +1,46 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { saveChannelConfig } from '@/lib/bot-api';
+import { useSettings } from '@/contexts/settings-context';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
 
+const PANEL_ID = 'channelManagement';
+
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
-  const { toast } = useToast();
+  const { updateSetting, registerPanel, getSetting } = useSettings();
+
   const [mode, setMode] = useState<ManagementMode>('slash');
   const [enableSuggestions, setEnableSuggestions] = useState(false);
   const [enableReports, setEnableReports] = useState(false);
-  const [processing, setProcessing] = useState<'suggestions' | 'reports' | null>(null);
 
-  const handleToggleFeature = async (
-    feature: 'suggestions' | 'reports', 
-    enabled: boolean
-  ) => {
-    setProcessing(feature);
-    
-    try {
-      await saveChannelConfig(guildId, {
-        type: feature,
-        enabled,
-        mode,
-      });
+  useEffect(() => {
+    registerPanel(PANEL_ID, (guildId, data) => saveChannelConfig(guildId, data));
+  }, [registerPanel]);
 
-      if (feature === 'suggestions') setEnableSuggestions(enabled);
-      if (feature === 'reports') setEnableReports(enabled);
-
-      toast({
-        title: 'Configuração Enviada!',
-        description: `A configuração para ${feature} foi enviada ao bot. Ele aplicará as mudanças em breve.`,
-      });
-    } catch (error) {
-      console.error(`Falha ao enviar configuração de ${feature}:`, error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro de Comunicação',
-        description: 'Não foi possível enviar a configuração para o backend do bot. Verifique se ele está online.',
-      });
-    } finally {
-      setProcessing(null);
-    }
-  };
+  useEffect(() => {
+     const savedSettings = getSetting<any>(PANEL_ID);
+     if (savedSettings) {
+        setMode(savedSettings.mode || 'slash');
+        setEnableSuggestions(savedSettings.suggestions?.enabled || false);
+        setEnableReports(savedSettings.reports?.enabled || false);
+     }
+  }, [getSetting]);
+  
+  useEffect(() => {
+    const currentSettings = {
+      mode,
+      suggestions: { enabled: enableSuggestions },
+      reports: { enabled: enableReports }
+    };
+    updateSetting(PANEL_ID, currentSettings);
+  }, [mode, enableSuggestions, enableReports, updateSetting]);
 
   const showChannels = mode === 'channels' || mode === 'both';
   const showSlashInfo = mode === 'slash' || mode === 'both';
@@ -59,7 +51,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor. As configurações são enviadas para o seu bot, que registrará comandos ou criará canais conforme definido.
+            Escolha como o bot deve interagir com o servidor. As alterações serão salvas quando você clicar em "Salvar" na barra inferior.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -101,12 +93,10 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {processing === 'suggestions' && <Loader2 className="h-5 w-5 animate-spin" />}
                     <Switch
                       id="suggestions-switch"
                       checked={enableSuggestions}
-                      onCheckedChange={(checked) => handleToggleFeature('suggestions', checked)}
-                      disabled={!!processing}
+                      onCheckedChange={setEnableSuggestions}
                     />
                   </div>
                 </div>
@@ -120,12 +110,10 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {processing === 'reports' && <Loader2 className="h-5 w-5 animate-spin" />}
                     <Switch
                       id="reports-switch"
                       checked={enableReports}
-                      onCheckedChange={(checked) => handleToggleFeature('reports', checked)}
-                      disabled={!!processing}
+                      onCheckedChange={setEnableReports}
                     />
                   </div>
                 </div>

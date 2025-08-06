@@ -1,3 +1,4 @@
+
 import { z } from 'zod';
 
 // Zod schema for a Discord channel
@@ -19,16 +20,16 @@ export type DiscordGuild = z.infer<typeof DiscordGuildSchema>;
 
 // Zod schema for a custom command
 export const CustomCommandSchema = z.object({
-  id: z.string().describe('The unique identifier for the command (e.g., "q-and-a", "suggest-build", or a new command name).'),
-  name: z.string().describe('The display name of the command.'),
-  description: z.string().describe('A short description of what the command does.'),
-  responseType: z.enum(['container', 'embed']).describe('The format of the bot\'s response.'),
+  id: z.string().min(1, 'O ID do comando é obrigatório.'),
+  name: z.string().min(1, 'O nome do comando é obrigatório.'),
+  description: z.string().min(1, 'A descrição é obrigatória.'),
+  responseType: z.enum(['container', 'embed']),
   response: z.object({
-    container: z.string().optional().describe('The response text for the "container" type.'),
+    container: z.string().optional(),
     embed: z.object({
-      title: z.string().optional().describe('The title for the "embed" type response.'),
-      description: z.string().optional().describe('The description for the "embed" type response.'),
+      title: z.string().optional(),
+      description: z.string().optional(),
     }).optional(),
-  }).describe('The response content, varying by responseType.'),
+  }),
 });
 export type CustomCommand = z.infer<typeof CustomCommandSchema>;

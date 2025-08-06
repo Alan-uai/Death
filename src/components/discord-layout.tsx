@@ -20,6 +20,10 @@ import { ChannelManagerPanel } from './channel-manager-panel';
 import { BotPersonalityPanel } from './bot-personality-panel';
 import { AnalyticsPanel } from './analytics-panel';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
+import { SettingsProvider, useSettings } from '@/contexts/settings-context';
+import { SaveChangesBar } from './save-changes-bar';
+import { useToast } from '@/hooks/use-toast';
+
 
 type Panel = 'chat' | 'settings' | 'commands' | 'channels' | 'personality' | 'analytics';
 
@@ -28,28 +32,30 @@ interface DiscordLayoutProps {
     onGoBack: () => void;
 }
 
-export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
+const navItems = [
+    { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
+    { id: 'settings', label: 'Configurações', icon: Cog },
+    { id: 'commands', label: 'Comandos Customizados', icon: Users },
+    { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
+    { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
+    { id: 'analytics', label: 'Analytics', icon: BarChart },
+];
+
+function DiscordLayoutContent({ guild, onGoBack }: DiscordLayoutProps) {
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const { isDirty, discardChanges } = useSettings();
+  const { toast } = useToast();
 
   const panelComponents: Record<Panel, React.FC<any>> = {
     chat: ChatPanel,
-    settings: SettingsPanel,
+    settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
     commands: (props) => <CustomCommandsPanel {...props} guildId={guild.id} />,
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
     personality: BotPersonalityPanel,
     analytics: AnalyticsPanel,
   };
-
-  const navItems = [
-      { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
-      { id: 'settings', label: 'Configurações', icon: Cog },
-      { id: 'commands', label: 'Comandos Customizados', icon: Users },
-      { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
-      { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
-      { id: 'analytics', label: 'Analytics', icon: BarChart },
-  ];
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -57,16 +63,35 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
       const allChannels = await getGuildChannelsAction(guild.id);
       setChannels(allChannels);
     };
-
     fetchChannels().catch(console.error);
-
   }, [guild.id]);
 
   const guildIcon = guild.icon ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png` : null;
 
   const handlePanelChange = (panel: Panel) => {
+    if (isDirty) {
+      toast({
+        variant: 'destructive',
+        title: 'Alterações não salvas!',
+        description: 'Salve ou descarte suas alterações antes de navegar para outra página.',
+      });
+      return;
+    }
     setActivePanel(panel);
     setIsSheetOpen(false); // Fecha o menu mobile ao selecionar uma opção
+  }
+  
+  const handleGoBack = () => {
+    if (isDirty) {
+      toast({
+        variant: 'destructive',
+        title: 'Alterações não salvas!',
+        description: 'Salve ou descarte suas alterações antes de sair.',
+      });
+      return;
+    }
+    discardChanges(); // Garante que o estado seja limpo ao sair
+    onGoBack();
   }
 
   const renderNav = () => (
@@ -79,6 +104,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
                 variant={activePanel === item.id ? 'secondary' : 'ghost'}
                 className="w-full justify-start"
                 onClick={() => handlePanelChange(item.id as Panel)}
+                disabled={isDirty}
             >
                 <item.icon className="mr-2 h-4 w-4" />
                 {item.label}
@@ -92,59 +118,64 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen w-full bg-background text-sm text-foreground">
-        {/* Main Content Area */}
-        <div className="flex flex-1 flex-col">
-          <header className="flex h-12 flex-shrink-0 items-center border-b border-border px-4 shadow-md">
-              <div className="flex items-center">
-                <div className="md:hidden mr-2">
-                   <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <Menu className="h-6 w-6" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[240px] bg-card border-r border-border p-0 pt-4">
-                      {renderNav()}
-                    </SheetContent>
-                  </Sheet>
-                </div>
-                 {guildIcon ? (
-                    <img src={guildIcon} alt={guild.name} className="h-8 w-8 rounded-full" />
-                 ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                        {guild.name.charAt(0)}
-                    </div>
-                 )}
-                <span className="ml-3 font-bold text-lg">{guild.name}</span>
+      <div className="flex h-screen w-full flex-col bg-background text-sm text-foreground">
+        <header className="flex h-12 flex-shrink-0 items-center border-b border-border px-4 shadow-md">
+            <div className="flex items-center">
+              <div className="md:hidden mr-2">
+                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <Menu className="h-6 w-6" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[240px] bg-card border-r border-border p-0 pt-4">
+                    {renderNav()}
+                  </SheetContent>
+                </Sheet>
               </div>
-              <div className="ml-auto flex items-center">
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onGoBack}>
-                            <ArrowLeft className="h-5 w-5" />
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                        <p>Selecionar outro servidor</p>
-                    </TooltipContent>
-                </Tooltip>
-              </div>
-          </header>
-
-          <div className="flex flex-1 overflow-hidden">
-            {/* Vertical Navigation Sidebar for Desktop */}
-            <div className="hidden md:block w-60 flex-shrink-0 border-r border-border bg-card">
-              {renderNav()}
+               {guildIcon ? (
+                  <img src={guildIcon} alt={guild.name} className="h-8 w-8 rounded-full" />
+               ) : (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                      {guild.name.charAt(0)}
+                  </div>
+               )}
+              <span className="ml-3 font-bold text-lg">{guild.name}</span>
             </div>
-            
-            {/* Panel Content */}
-            <main className="flex-1 overflow-y-auto bg-secondary/30">
-              <ActivePanelComponent channels={channels} guildId={guild.id} />
-            </main>
+            <div className="ml-auto flex items-center">
+              <Tooltip>
+                  <TooltipTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleGoBack}>
+                          <ArrowLeft className="h-5 w-5" />
+                      </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                      <p>Selecionar outro servidor</p>
+                  </TooltipContent>
+              </Tooltip>
+            </div>
+        </header>
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className="hidden md:block w-60 flex-shrink-0 border-r border-border bg-card">
+            {renderNav()}
           </div>
+          
+          <main className="relative flex-1 overflow-y-auto bg-secondary/30">
+            <ActivePanelComponent channels={channels} guildId={guild.id} />
+          </main>
         </div>
+        
+        <SaveChangesBar guildId={guild.id} />
       </div>
     </TooltipProvider>
   );
+}
+
+export function DiscordLayout(props: DiscordLayoutProps) {
+    return (
+        <SettingsProvider>
+            <DiscordLayoutContent {...props} />
+        </SettingsProvider>
+    )
 }

@@ -1,21 +1,19 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { useToast } from '@/hooks/use-toast';
 import { getCustomCommandAction } from '@/app/actions';
 import { saveCommandConfig } from '@/lib/bot-api';
-import { type CustomCommand } from '@/lib/types';
-import { Loader2, Save } from 'lucide-react';
+import { type CustomCommand, CustomCommandSchema } from '@/lib/types';
+import { Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,20 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useSettings } from '@/contexts/settings-context';
+import { Button } from './ui/button';
 
-const commandSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, 'O nome do comando é obrigatório.'),
-  description: z.string().min(1, 'A descrição é obrigatória.'),
-  responseType: z.enum(['container', 'embed']),
-  response: z.object({
-    container: z.string().optional(),
-    embed: z.object({
-      title: z.string().optional(),
-      description: z.string().optional(),
-    }).optional(),
-  }),
-});
 
 const commandOptions = [
     { id: 'q-and-a', name: 'Perguntas e Respostas (@Menção)' },
@@ -44,14 +31,15 @@ const commandOptions = [
     { id: 'novo-comando', name: 'Criar Novo Comando' },
 ];
 
+const PANEL_ID = 'customCommands';
+
 export function CustomCommandsPanel({ guildId }: { guildId: string }) {
-  const { toast } = useToast();
+  const { updateSetting, registerPanel } = useSettings();
   const [selectedCommandId, setSelectedCommandId] = useState<string>('q-and-a');
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const methods = useForm<CustomCommand>({
-    resolver: zodResolver(commandSchema),
+    resolver: zodResolver(CustomCommandSchema),
     defaultValues: {
       id: 'q-and-a',
       name: 'Perguntas e Respostas',
@@ -64,9 +52,27 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     },
   });
 
+  const watchedFields = useWatch({ control: methods.control });
+
+  useEffect(() => {
+    registerPanel(PANEL_ID, (guildId, data) => saveCommandConfig(guildId, data as CustomCommand));
+  }, [registerPanel]);
+  
+  useEffect(() => {
+    if (methods.formState.isDirty) {
+      updateSetting(PANEL_ID, methods.getValues());
+    }
+  }, [watchedFields, methods, updateSetting]);
+
+
   useEffect(() => {
     const fetchCommandData = async () => {
-      if (!selectedCommandId || selectedCommandId === 'novo-comando') {
+      if (!selectedCommandId) return;
+
+      const isNewCommand = selectedCommandId === 'novo-comando';
+      methods.reset(undefined, { keepDirty: false, keepValues: false }); // Limpa o formulário
+
+      if (isNewCommand) {
          methods.reset({
           id: `custom-${Date.now()}`,
           name: '',
@@ -97,23 +103,6 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     fetchCommandData();
   }, [selectedCommandId, methods]);
   
-  const onSubmit = async (data: CustomCommand) => {
-    setIsSaving(true);
-    try {
-      await saveCommandConfig(guildId, data);
-      toast({
-        title: 'Sucesso!',
-        description: "Configuração do comando enviada para o bot.",
-      });
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Erro!',
-        description: "Falha ao enviar configuração para o bot. Verifique se ele está online.",
-      });
-    }
-    setIsSaving(false);
-  };
   
   const responseType = methods.watch('responseType');
 
@@ -123,12 +112,12 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Comandos e Respostas</CardTitle>
           <CardDescription>
-            Crie novos comandos ou personalize as respostas dos comandos existentes. As configurações são enviadas para o backend do seu bot.
+            Crie novos comandos ou personalize as respostas. As alterações serão salvas quando você clicar no botão "Salvar" na barra inferior.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FormProvider {...methods}>
-            <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-8">
               <div>
                 <Label htmlFor="command-select">Selecione o Comando para Editar</Label>
                 <Select value={selectedCommandId} onValueChange={setSelectedCommandId}>
@@ -168,7 +157,7 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
                     <Label>Formato da Resposta</Label>
                     <RadioGroup
                       value={responseType}
-                      onValueChange={(value) => methods.setValue('responseType', value as 'container' | 'embed')}
+                      onValueChange={(value) => methods.setValue('responseType', value as 'container' | 'embed', { shouldDirty: true })}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -220,13 +209,6 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
                     </p>
                 </div>
               )}
-
-              <div className="flex justify-end">
-                <Button type="submit" disabled={isSaving || isLoading}>
-                  {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
-                  Salvar e Enviar para o Bot
-                </Button>
-              </div>
             </form>
           </FormProvider>
         </CardContent>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,60 +6,58 @@ import type { DiscordChannel } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from './ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { saveGenericConfig } from '@/lib/bot-api';
+import { useSettings } from '@/contexts/settings-context';
 
 interface SettingsPanelProps {
   channels: DiscordChannel[];
   guildId: string;
 }
 
+const PANEL_ID = 'genericSettings';
+
 export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
-  const { toast } = useToast();
+  const { updateSetting, registerPanel, getSetting } = useSettings();
   const [qaChannel, setQaChannel] = useState<string>('any');
   const [buildsChannel, setBuildsChannel] = useState<string>('any');
-  const [isSaving, setIsSaving] = useState(false);
   
   const textChannels = channels.filter(c => c.type === 0);
 
   useEffect(() => {
+    registerPanel(PANEL_ID, (guildId, data) => saveGenericConfig(guildId, data));
+  }, [registerPanel]);
+
+
+  useEffect(() => {
     // In a real app, you would fetch these settings from your bot's backend
-    // For now, we use localStorage for demonstration
+    // For now, we use localStorage as a fallback for initial state
     const savedQaChannel = localStorage.getItem(`settings_qaChannel_${guildId}`) || 'any';
     const savedBuildsChannel = localStorage.getItem(`settings_buildsChannel_${guildId}`) || 'any';
-    setQaChannel(savedQaChannel);
-    setBuildsChannel(savedBuildsChannel);
-  }, [guildId]);
-
-  const handleSave = async () => {
-    setIsSaving(true);
     
-    const settingsPayload = {
-        qaChannel: qaChannel,
-        buildsChannel: buildsChannel,
-    };
+    // Set initial state for the panel
+    const initialQa = getSetting<string>('qaChannel') ?? savedQaChannel;
+    const initialBuilds = getSetting<string>('buildsChannel') ?? savedBuildsChannel;
 
-    try {
-        await saveGenericConfig(guildId, settingsPayload);
-        toast({
-            title: "Configurações Enviadas",
-            description: "Suas novas configurações foram enviadas para o bot.",
-        });
-    } catch (error) {
-       toast({
-        variant: 'destructive',
-        title: "Erro ao Salvar",
-        description: "Não foi possível enviar as configurações para o bot.",
-      });
-    }
+    setQaChannel(initialQa);
+    setBuildsChannel(initialBuilds);
 
-    // Also save to localStorage for instant UI feedback
-    localStorage.setItem(`settings_qaChannel_${guildId}`, qaChannel);
-    localStorage.setItem(`settings_buildsChannel_${guildId}`, buildsChannel);
+    // Set initial settings in the context if not already there
+    updateSetting(PANEL_ID, {
+      qaChannel: initialQa,
+      buildsChannel: initialBuilds,
+    });
+  }, [guildId, getSetting, updateSetting]);
 
-    setIsSaving(false);
+  const handleQaChange = (value: string) => {
+    setQaChannel(value);
+    updateSetting(PANEL_ID, { qaChannel: value, buildsChannel });
   };
+
+  const handleBuildsChange = (value: string) => {
+    setBuildsChannel(value);
+    updateSetting(PANEL_ID, { qaChannel, buildsChannel: value });
+  };
+
 
   return (
     <div className="p-4 md:p-6">
@@ -66,7 +65,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle>Configuração do Bot</CardTitle>
           <CardDescription>
-            Configure onde as funcionalidades do bot estão ativas. As configurações são enviadas para o seu bot.
+            Configure onde as funcionalidades do bot estão ativas. Clique em "Salvar" na barra inferior para aplicar.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -77,7 +76,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
               <p className="text-sm text-muted-foreground">
                 Selecione um canal onde o bot responderá a perguntas. Escolha "Qualquer Canal" para permitir perguntas em todos os lugares.
               </p>
-              <Select value={qaChannel} onValueChange={setQaChannel}>
+              <Select value={qaChannel} onValueChange={handleQaChange}>
                 <SelectTrigger id="qa-channel" className="w-full md:w-[300px]">
                   <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>
@@ -97,7 +96,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
               <p className="text-sm text-muted-foreground">
                 Selecione um canal para sugestões de build. Escolha "Qualquer Canal" para permitir este comando em todos os lugares.
               </p>
-              <Select value={buildsChannel} onValueChange={setBuildsChannel}>
+              <Select value={buildsChannel} onValueChange={handleBuildsChange}>
                 <SelectTrigger id="builds-channel" className="w-full md:w-[300px]">
                   <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>
@@ -111,12 +110,6 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
                 </SelectContent>
               </Select>
             </div>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
-            </Button>
           </div>
         </CardContent>
       </Card>
