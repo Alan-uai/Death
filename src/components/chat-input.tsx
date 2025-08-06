@@ -14,15 +14,15 @@ interface ChatInputProps {
 }
 
 const placeholders: Record<string, string> = {
-    'q-and-a': 'Message with @Death <your question>',
-    'build-suggestions': 'Message with /suggest-build <style>',
+    'q-and-a': 'Mensagem com @Death <sua pergunta>',
+    'build-suggestions': 'Mensagem com /suggest-build <estilo>',
 };
 
 
 export function ChatInput({ onSendMessage, isLoading, channelId, disabled = false }: ChatInputProps) {
   const [input, setInput] = useState('');
   
-  const placeholder = placeholders[channelId] || 'Send a message...';
+  const placeholder = placeholders[channelId] || 'Enviar uma mensagem...';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +39,7 @@ export function ChatInput({ onSendMessage, isLoading, channelId, disabled = fals
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={disabled ? 'Select a channel to start' : placeholder}
+          placeholder={disabled ? 'Selecione um canal para começar' : placeholder}
           className="h-12 rounded-lg bg-input pl-10 pr-12 text-base"
           disabled={isLoading || disabled}
           autoComplete="off"

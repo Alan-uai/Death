@@ -1,11 +1,12 @@
+
 'use server';
 
 /**
- * @fileOverview A flow to suggest in-game builds and guides.
+ * @fileOverview Um fluxo para sugerir builds e guias no jogo.
  *
- * - suggestInGameBuild - A function that handles the suggestion of in-game builds.
- * - SuggestInGameBuildInput - The input type for the suggestInGameBuild function.
- * - SuggestInGameBuildOutput - The return type for the suggestInGameBuild function.
+ * - suggestInGameBuild - Uma função que lida com a sugestão de builds no jogo.
+ * - SuggestInGameBuildInput - O tipo de entrada para a função suggestInGameBuild.
+ * - SuggestInGameBuildOutput - O tipo de retorno para a função suggestInGameBuild.
  */
 
 import {ai} from '@/ai/genkit';
@@ -15,17 +16,18 @@ const SuggestInGameBuildInputSchema = z.object({
   gameState: z
     .string()
     .describe(
-      'The current game state, including character stats, inventory, and progress.'
+      'O estado atual do jogo, incluindo estatísticas do personagem, inventário e progresso.'
     ),
   playerPreferences: z
     .string()
-    .describe('The player preferences, including play style and goals.'),
+
+.describe('As preferências do jogador, incluindo estilo de jogo e objetivos.'),
 });
 export type SuggestInGameBuildInput = z.infer<typeof SuggestInGameBuildInputSchema>;
 
 const SuggestInGameBuildOutputSchema = z.object({
-  buildSuggestion: z.string().describe('The suggested in-game build or guide.'),
-  reasoning: z.string().describe('The reasoning behind the build suggestion.'),
+  buildSuggestion: z.string().describe('A build ou guia sugerido no jogo.'),
+  reasoning: z.string().describe('A justificativa por trás da sugestão de build.'),
 });
 export type SuggestInGameBuildOutput = z.infer<typeof SuggestInGameBuildOutputSchema>;
 
@@ -37,13 +39,13 @@ const prompt = ai.definePrompt({
   name: 'suggestInGameBuildPrompt',
   input: {schema: SuggestInGameBuildInputSchema},
   output: {schema: SuggestInGameBuildOutputSchema},
-  prompt: `You are an expert game guide, adept at suggesting in-game builds and strategies.
+  prompt: `Você é um guia de jogo especialista, adepto a sugerir builds e estratégias no jogo.
 
-  Based on the current game state and player preferences, suggest an in-game build or guide.
-  Explain your reasoning behind the suggestion.
+  Com base no estado atual do jogo e nas preferências do jogador, sugira uma build ou um guia no jogo.
+  Explique sua justificativa por trás da sugestão.
 
-  Game State: {{{gameState}}}
-  Player Preferences: {{{playerPreferences}}}
+  Estado do Jogo: {{{gameState}}}
+  Preferências do Jogador: {{{playerPreferences}}}
   `,
 });
 

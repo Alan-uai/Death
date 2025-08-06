@@ -21,10 +21,7 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
   
   const textChannels = channels.filter(c => c.type === 0);
 
-  // In a real app, you would fetch and save these settings.
-  // For now, we'll simulate it with local state and a toast notification.
   useEffect(() => {
-    // Load saved settings from localStorage or an API
     const savedQaChannel = localStorage.getItem('settings_qaChannel') || 'any';
     const savedBuildsChannel = localStorage.getItem('settings_buildsChannel') || 'any';
     setQaChannel(savedQaChannel);
@@ -33,43 +30,41 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
 
   const handleSave = () => {
     setIsSaving(true);
-    // Simulate saving settings
     localStorage.setItem('settings_qaChannel', qaChannel);
     localStorage.setItem('settings_buildsChannel', buildsChannel);
 
     setTimeout(() => {
       setIsSaving(false);
       toast({
-        title: "Settings Saved",
-        description: "Your new configurations have been applied.",
+        title: "Configurações Salvas",
+        description: "Suas novas configurações foram aplicadas.",
       });
     }, 1000);
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <Card>
         <CardHeader>
-          <CardTitle>Bot Configuration</CardTitle>
+          <CardTitle>Configuração do Bot</CardTitle>
           <CardDescription>
-            Configure where the bot's features are active and how it responds.
+            Configure onde as funcionalidades do bot estão ativas e como ele responde.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
-          {/* Feature #2: Channel Configuration */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Channel Settings</h3>
+            <h3 className="text-lg font-medium">Configurações de Canal</h3>
             <div className="space-y-2">
-              <Label htmlFor="qa-channel">Q&A Channel</Label>
+              <Label htmlFor="qa-channel">Canal de Perguntas e Respostas</Label>
               <p className="text-sm text-muted-foreground">
-                Select a channel where the bot will answer questions. Choose "Any Channel" to allow questions everywhere.
+                Selecione um canal onde o bot responderá a perguntas. Escolha "Qualquer Canal" para permitir perguntas em todos os lugares.
               </p>
               <Select value={qaChannel} onValueChange={setQaChannel}>
-                <SelectTrigger id="qa-channel" className="w-[300px]">
-                  <SelectValue placeholder="Select a channel" />
+                <SelectTrigger id="qa-channel" className="w-full md:w-[300px]">
+                  <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Any Channel</SelectItem>
+                  <SelectItem value="any">Qualquer Canal</SelectItem>
                   {textChannels.map(channel => (
                     <SelectItem key={channel.id} value={channel.id}>
                       # {channel.name}
@@ -80,16 +75,16 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="builds-channel">Build Suggestions Channel</Label>
+              <Label htmlFor="builds-channel">Canal de Sugestões de Build</Label>
               <p className="text-sm text-muted-foreground">
-                Select a channel for build suggestions. Choose "Any Channel" to allow this command everywhere.
+                Selecione um canal para sugestões de build. Escolha "Qualquer Canal" para permitir este comando em todos os lugares.
               </p>
               <Select value={buildsChannel} onValueChange={setBuildsChannel}>
-                <SelectTrigger id="builds-channel" className="w-[300px]">
-                  <SelectValue placeholder="Select a channel" />
+                <SelectTrigger id="builds-channel" className="w-full md:w-[300px]">
+                  <SelectValue placeholder="Selecione um canal" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="any">Any Channel</SelectItem>
+                  <SelectItem value="any">Qualquer Canal</SelectItem>
                   {textChannels.map(channel => (
                     <SelectItem key={channel.id} value={channel.id}>
                       # {channel.name}
@@ -102,7 +97,7 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
 
           <div className="flex justify-end">
             <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
         </CardContent>

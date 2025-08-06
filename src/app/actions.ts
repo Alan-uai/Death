@@ -24,8 +24,8 @@ export async function askQuestionAction(
     const result = await answerGameQuestions(input);
     return result.answer;
   } catch (error) {
-    console.error('Error in askQuestionAction:', error);
-    return 'An error occurred while fetching an answer. Please try again.';
+    console.error('Erro na ação askQuestionAction:', error);
+    return 'Ocorreu um erro ao buscar uma resposta. Por favor, tente novamente.';
   }
 }
 
@@ -36,10 +36,10 @@ export async function suggestBuildAction(
     const result = await suggestInGameBuild(input);
     return result;
   } catch (error) {
-    console.error('Error in suggestBuildAction:', error);
+    console.error('Erro na ação suggestBuildAction:', error);
     return {
-      buildSuggestion: 'Could not generate a build suggestion.',
-      reasoning: 'An error occurred while processing the request. Please try again.',
+      buildSuggestion: 'Não foi possível gerar uma sugestão de build.',
+      reasoning: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente.',
     };
   }
 }
@@ -49,7 +49,7 @@ export async function getBotStatusAction(): Promise<string> {
     const result = await getBotStatus();
     return result.status;
   } catch (error) {
-    console.error('Error getting bot status:', error);
+    console.error('Erro ao obter o status do bot:', error);
     return 'Offline';
   }
 }
@@ -65,19 +65,19 @@ export const getGuildChannelsAction = cache(async (
       if (guildDoc.exists) {
         const data = guildDoc.data();
         if (data && data.channels) {
-          console.log(`[Firestore] Found channels for guild ${guildId} in cache.`);
+          console.log(`[Firestore] Canais encontrados para o servidor ${guildId} no cache.`);
           return data.channels as DiscordChannel[];
         }
       }
     } else {
-        console.warn('[Firestore] DB not initialized. Skipping cache lookup for channels.')
+        console.warn('[Firestore] DB não inicializado. Pulando a busca de canais no cache.')
     }
     
-    console.log(`[Discord API] Channels for guild ${guildId} not in Firestore cache. Fetching from API.`);
+    console.log(`[API Discord] Canais para o servidor ${guildId} não encontrados no cache do Firestore. Buscando na API.`);
     const { channels } = await getGuildChannels({ guildId });
 
     if (db && channels.length > 0) {
-        console.log(`[Firestore] Saving fetched channels for guild ${guildId} to cache.`);
+        console.log(`[Firestore] Salvando canais buscados para o servidor ${guildId} no cache.`);
         const guildDocRef = db.collection('servers').doc(guildId);
         await guildDocRef.set({
             id: guildId,
@@ -89,7 +89,7 @@ export const getGuildChannelsAction = cache(async (
     return channels;
 
   } catch (error) {
-    console.error(`Error getting guild channels for guild ${guildId}:`, error);
+    console.error(`Erro ao obter canais para o servidor ${guildId}:`, error);
     return [];
   }
 });
@@ -99,7 +99,7 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
         const guilds = await getBotGuilds();
         return guilds;
     } catch (error) {
-        console.error('Error getting bot guilds:', error);
+        console.error('Erro ao obter servidores do bot:', error);
         return [];
     }
 }
@@ -107,10 +107,10 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
 export async function registerCommandsAction(guildId: string): Promise<boolean> {
     try {
         await registerGuildCommands(guildId);
-        console.log(`Successfully registered commands for guild ${guildId}`);
+        console.log(`Comandos registrados com sucesso para o servidor ${guildId}`);
         return true;
     } catch (error) {
-        console.error(`Error registering commands for guild ${guildId}:`, error);
+        console.error(`Erro ao registrar comandos para o servidor ${guildId}:`, error);
         return false;
     }
 }

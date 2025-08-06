@@ -1,17 +1,18 @@
+
 'use server';
 
 /**
- * @fileOverview A flow to get the bot's status.
+ * @fileOverview Um fluxo para obter o status do bot.
  *
- * - getBotStatus - A function that returns the bot's status.
- * - GetBotStatusOutput - The return type for the getBotStatus function.
+ * - getBotStatus - Uma função que retorna o status do bot.
+ * - GetBotStatusOutput - O tipo de retorno para a função getBotStatus.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const GetBotStatusOutputSchema = z.object({
-  status: z.string().describe('The status of the bot (e.g., Online, Offline).'),
+  status: z.string().describe('O status do bot (ex: Online, Offline).'),
 });
 export type GetBotStatusOutput = z.infer<typeof GetBotStatusOutputSchema>;
 
@@ -26,8 +27,8 @@ const getBotStatusFlow = ai.defineFlow(
     outputSchema: GetBotStatusOutputSchema,
   },
   async () => {
-    // In a real application, you would check the connection status to Discord's gateway or other services.
-    // For this prototype, we'll simulate an online status.
+    // Em uma aplicação real, você verificaria o status da conexão com o gateway do Discord ou outros serviços.
+    // Para este protótipo, simularemos um status online.
     return {
       status: 'Online',
     };

@@ -1,23 +1,24 @@
+
 'use server';
 
 /**
- * @fileOverview An AI agent for answering questions about the game.
+ * @fileOverview Um agente de IA para responder a perguntas sobre o jogo.
  *
- * - answerGameQuestions - A function that handles answering questions about the game.
- * - AnswerGameQuestionsInput - The input type for the answerGameQuestions function.
- * - AnswerGameQuestionsOutput - The return type for the answerGameQuestions function.
+ * - answerGameQuestions - Uma função que lida com as respostas a perguntas sobre o jogo.
+ * - AnswerGameQuestionsInput - O tipo de entrada para a função answerGameQuestions.
+ * - AnswerGameQuestionsOutput - O tipo de retorno para a função answerGameQuestions.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const AnswerGameQuestionsInputSchema = z.object({
-  question: z.string().describe('The question about the game.'),
+  question: z.string().describe('A pergunta sobre o jogo.'),
 });
 export type AnswerGameQuestionsInput = z.infer<typeof AnswerGameQuestionsInputSchema>;
 
 const AnswerGameQuestionsOutputSchema = z.object({
-  answer: z.string().describe('The answer to the question.'),
+  answer: z.string().describe('A resposta para a pergunta.'),
 });
 export type AnswerGameQuestionsOutput = z.infer<typeof AnswerGameQuestionsOutputSchema>;
 
@@ -29,10 +30,10 @@ const prompt = ai.definePrompt({
   name: 'answerGameQuestionsPrompt',
   input: {schema: AnswerGameQuestionsInputSchema},
   output: {schema: AnswerGameQuestionsOutputSchema},
-  prompt: `You are a chatbot in a Discord server that answers questions about a video game when a user @mentions you.
+  prompt: `Você é um chatbot em um servidor do Discord que responde a perguntas sobre um videogame quando um usuário o @menciona.
 
-  Question: {{{question}}}
-  Answer: `,
+  Pergunta: {{{question}}}
+  Resposta: `,
 });
 
 const answerGameQuestionsFlow = ai.defineFlow(

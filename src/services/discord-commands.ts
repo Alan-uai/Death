@@ -4,11 +4,11 @@ const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 const commands = [
   {
     name: 'suggest-build',
-    description: 'Get a build suggestion for your character.',
+    description: 'Obtenha uma sugestão de build para seu personagem.',
     options: [
         {
             name: 'style',
-            description: 'The playstyle you prefer (e.g., aggressive, defensive, mage).',
+            description: 'O estilo de jogo que você prefere (ex: agressivo, defensivo, mago).',
             type: 3, // String
             required: true,
         },
@@ -18,7 +18,7 @@ const commands = [
 
 async function registerGuildCommands(guildId: string): Promise<void> {
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_BOT_TOKEN) {
-    throw new Error('Missing DISCORD_CLIENT_ID or DISCORD_BOT_TOKEN in environment variables.');
+    throw new Error('Variáveis de ambiente DISCORD_CLIENT_ID ou DISCORD_BOT_TOKEN ausentes.');
   }
 
   const url = `${DISCORD_API_BASE_URL}/applications/${process.env.DISCORD_CLIENT_ID}/guilds/${guildId}/commands`;
@@ -34,12 +34,12 @@ async function registerGuildCommands(guildId: string): Promise<void> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error(`Failed to register commands for guild ${guildId}:`, errorText);
-    throw new Error(`Discord API error: ${response.status} ${response.statusText}`);
+    console.error(`Falha ao registrar comandos para o servidor ${guildId}:`, errorText);
+    throw new Error(`Erro na API do Discord: ${response.status} ${response.statusText}`);
   }
 
   const data = await response.json();
-  console.log(`Successfully registered ${data.length} commands for guild ${guildId}.`);
+  console.log(`Registrado(s) ${data.length} comando(s) com sucesso para o servidor ${guildId}.`);
 }
 
 export { registerGuildCommands };

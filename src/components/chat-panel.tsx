@@ -18,23 +18,23 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
     author: 'bot',
     username: 'Death',
     embed: {
-      title: 'Welcome to the Chat Simulator!',
-      description: 'Select a channel on the left to start simulating conversations. The bot will respond based on your current settings.',
+      title: 'Bem-vindo ao Simulador de Chat!',
+      description: 'Selecione um canal à esquerda para começar a simular conversas. O bot responderá com base nas suas configurações atuais.',
     },
   },
   'q-and-a': {
     author: 'bot',
     username: 'Death',
-    text: 'This is the Q&A channel. Ask me anything about the game by @mentioning me.',
+    text: 'Este é o canal de Perguntas e Respostas. Pergunte-me qualquer coisa sobre o jogo me mencionando com @.',
   },
   'build-suggestions': {
     author: 'bot',
     username: 'Death',
-    text: 'Looking for a new build? Use `/suggest-build` with your preferred playstyle.',
+    text: 'Procurando uma nova build? Use `/suggest-build` com seu estilo de jogo preferido.',
   },
 };
 
-const getTimestamp = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const getTimestamp = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
 export function ChatPanel({ channels }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -51,13 +51,22 @@ export function ChatPanel({ channels }: ChatPanelProps) {
   }, [channels, activeChannel, textChannels]);
 
   useEffect(() => {
-    const welcomeMessageKey = activeChannel?.name.includes('q-and-a') ? 'q-and-a' : activeChannel?.name.includes('build') ? 'build-suggestions' : 'default';
-    const welcomeMessage: Message = {
-      ...(welcomeMessages[welcomeMessageKey] || welcomeMessages.default),
-      id: `${activeChannel?.id || 'default'}-1`,
-      timestamp: getTimestamp(),
-    };
-    setMessages([welcomeMessage]);
+    if (activeChannel) {
+        const welcomeMessageKey = activeChannel.name.includes('q-and-a') ? 'q-and-a' : activeChannel.name.includes('build') ? 'build-suggestions' : 'default';
+        const welcomeMessage: Message = {
+          ...(welcomeMessages[welcomeMessageKey] || welcomeMessages.default),
+          id: `${activeChannel.id}-welcome`,
+          timestamp: getTimestamp(),
+        };
+        setMessages([welcomeMessage]);
+    } else {
+        const welcomeMessage: Message = {
+            ...welcomeMessages.default,
+            id: 'default-welcome',
+            timestamp: getTimestamp(),
+        };
+        setMessages([welcomeMessage]);
+    }
   }, [activeChannel]);
 
   useEffect(() => {
@@ -72,7 +81,7 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     const userMessage: Message = {
       id: Date.now().toString(),
       author: 'user',
-      username: 'PlayerOne',
+      username: 'JogadorUm',
       timestamp: getTimestamp(),
       text: input,
     };
@@ -89,28 +98,28 @@ export function ChatPanel({ channels }: ChatPanelProps) {
       const answer = await askQuestionAction({ question: restOfInput });
       botResponse = {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-        embed: { title: `Response to: ${restOfInput}`, description: answer },
+        embed: { title: `Resposta para: ${restOfInput}`, description: answer },
       };
     } else if (command === '/suggest-build') {
       const { buildSuggestion, reasoning } = await suggestBuildAction({
-        gameState: 'mid-game, level 50',
+        gameState: 'meio de jogo, nível 50',
         playerPreferences: restOfInput,
       });
       botResponse = {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: {
-          title: 'Build Suggestion',
-          description: `Based on your preference for a *${restOfInput}* style:`,
+          title: 'Sugestão de Build',
+          description: `Baseado na sua preferência por um estilo *${restOfInput}*:`,
           fields: [
-            { name: 'Suggestion', value: buildSuggestion },
-            { name: 'Reasoning', value: reasoning },
+            { name: 'Sugestão', value: buildSuggestion },
+            { name: 'Justificativa', value: reasoning },
           ],
         },
       };
     } else {
         botResponse = {
             id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-            text: `The command \`${command}\` is not recognized or not configured for this channel.`,
+            text: `O comando \`${command}\` não foi reconhecido ou não está configurado para este canal.`,
         };
     }
     
@@ -121,10 +130,10 @@ export function ChatPanel({ channels }: ChatPanelProps) {
   };
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full flex-col md:flex-row">
       {/* Channel List */}
-      <div className="w-60 flex-shrink-0 bg-[#2f3136] p-2">
-        <h3 className="px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Text Channels</h3>
+      <div className="w-full md:w-60 flex-shrink-0 bg-[#2f3136] p-2">
+        <h3 className="px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Canais de Texto</h3>
         <div className="mt-2 space-y-1">
           {textChannels.map((channel) => (
             <button
@@ -139,6 +148,9 @@ export function ChatPanel({ channels }: ChatPanelProps) {
               <span className="font-medium">{channel.name}</span>
             </button>
           ))}
+           {textChannels.length === 0 && (
+            <p className="px-2 text-sm text-muted-foreground">Nenhum canal de texto encontrado.</p>
+          )}
         </div>
       </div>
       
@@ -146,7 +158,7 @@ export function ChatPanel({ channels }: ChatPanelProps) {
       <div className="flex flex-1 flex-col overflow-hidden bg-[#36393f]">
         <div className="flex h-12 items-center border-b border-black/20 px-4 shadow-md">
           <Hash className="h-6 w-6 text-gray-400" />
-          <span className="ml-2 font-semibold text-white">{activeChannel?.name || 'Select a channel'}</span>
+          <span className="ml-2 font-semibold text-white">{activeChannel?.name || 'Selecione um canal'}</span>
         </div>
         <div ref={scrollAreaRef} className="flex-1 overflow-y-auto p-4">
           <div className="space-y-4">
@@ -155,7 +167,7 @@ export function ChatPanel({ channels }: ChatPanelProps) {
             ))}
             {isLoading && (
               <div className="flex items-center space-x-2 pl-14 text-sm text-muted-foreground">
-                <span className="font-semibold">Death</span> is typing...
+                <span className="font-semibold">Death</span> está digitando...
               </div>
             )}
           </div>

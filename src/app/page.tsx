@@ -72,7 +72,6 @@ export default function Home() {
             const manageableGuilds = userGuildsData.filter(g => (parseInt(g.permissions) & 0x20) === 0x20);
             setGuilds(manageableGuilds);
           } else {
-             // Only log out if the token is explicitly rejected
              if (userGuildsResponse.status === 401 || userGuildsResponse.status === 403) {
                 localStorage.removeItem('discord_access_token');
                 setIsLoggedIn(false);
@@ -83,8 +82,7 @@ export default function Home() {
           setBotGuilds(botGuildIds);
 
         } catch (error) {
-          console.error('Error fetching initial data:', error);
-          // Don't log out on a generic network error
+          console.error('Erro ao buscar dados iniciais:', error);
         } finally {
             setIsLoading(false);
         }
@@ -130,9 +128,9 @@ export default function Home() {
       
       registerCommandsAction(pendingGuildId).then(success => {
         if (success) {
-          console.log(`Successfully triggered command registration for guild ${pendingGuildId}`);
+          console.log(`Registro de comando acionado com sucesso para o servidor ${pendingGuildId}`);
         } else {
-          console.error(`Failed to trigger command registration for guild ${pendingGuildId}`);
+          console.error(`Falha ao acionar registro de comando para o servidor ${pendingGuildId}`);
         }
         const guild = guilds.find(g => g.id === pendingGuildId);
         if (guild) {
@@ -147,7 +145,6 @@ export default function Home() {
     localStorage.removeItem('selected_guild');
     setSelectedGuild(null);
     setShowInviteMessage(false);
-    // No need to reload, the useEffect will trigger a re-fetch of guilds
   };
   
   if (selectedGuild) {
@@ -162,9 +159,9 @@ export default function Home() {
                     <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary animate-pulse">
                        <DiscordLogoIcon className="h-12 w-12 text-white" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Loading your servers...</CardTitle>
+                    <CardTitle className="text-2xl font-bold">Carregando seus servidores...</CardTitle>
                     <CardDescription className="text-gray-400">
-                        Please wait while we fetch your information.
+                        Por favor, aguarde enquanto buscamos suas informações.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -180,14 +177,14 @@ export default function Home() {
                     <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
                        <DiscordLogoIcon className="h-12 w-12 text-white" />
                     </div>
-                    <CardTitle className="text-2xl font-bold">Configure Your Discord Bot</CardTitle>
+                    <CardTitle className="text-2xl font-bold">Configure seu Bot do Discord</CardTitle>
                     <CardDescription className="text-gray-400">
-                        Login with your Discord account to select a server and configure the bot.
+                        Faça login com sua conta do Discord para selecionar um servidor e configurar o bot.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
                     <Button onClick={handleLogin} className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold" disabled={!oauthUrl}>
-                        Login with Discord
+                        Login com Discord
                     </Button>
                 </CardContent>
             </Card>
@@ -199,11 +196,11 @@ export default function Home() {
       <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
           <Card className="w-full max-w-lg bg-[#2f3136] text-white shadow-2xl border-none">
               <CardHeader>
-                  <CardTitle>Select a Server</CardTitle>
+                  <CardTitle>Selecione um Servidor</CardTitle>
                   <CardDescription className="text-gray-400">
                       {showInviteMessage 
-                        ? 'After adding the bot, please refresh this page to continue.'
-                        : "Choose a server to invite the bot to, or select one where it's already present."
+                        ? 'Após adicionar o bot, por favor, atualize esta página para continuar.'
+                        : "Escolha um servidor para convidar o bot, ou selecione um onde ele já está presente."
                       }
                   </CardDescription>
               </CardHeader>
@@ -226,23 +223,23 @@ export default function Home() {
                                   </div>
                                   {isBotMember ? (
                                     <Button onClick={() => handleSelect(guild)} className="bg-green-600 hover:bg-green-700">
-                                      Select
+                                      Selecionar
                                     </Button>
                                   ) : (
                                     <Button onClick={() => handleInvite(guild)} className="bg-primary hover:bg-primary/80" disabled={!botInviteBaseUrl}>
-                                        Add Bot
+                                        Adicionar Bot
                                     </Button>
                                   )}
                               </div>
                             )
                           })
                       ) : (
-                          <p className="text-muted-foreground">No manageable servers found. Make sure you are logged into the correct Discord account and have 'Manage Server' permissions.</p>
+                          <p className="text-muted-foreground">Nenhum servidor gerenciável encontrado. Certifique-se de estar logado na conta correta do Discord e ter permissões de 'Gerenciar Servidor'.</p>
                       )}
                   </div>
               </CardContent>
                <CardFooter className="flex justify-end pt-4">
-                  <Button variant="destructive" onClick={handleLogout}>Logout</Button>
+                  <Button variant="destructive" onClick={handleLogout}>Sair</Button>
               </CardFooter>
           </Card>
       </main>
