@@ -10,8 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { getCustomCommandAction } from '@/app/actions';
-import { saveCommandConfig } from '@/lib/bot-api';
+import { getCustomCommandAction, saveCommandConfigAction } from '@/app/actions';
 import { type CustomCommand, CustomCommandSchema } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import {
@@ -51,14 +50,14 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     },
   });
 
+  const onSave = useCallback(() => {
+      const values = methods.getValues();
+      return saveCommandConfigAction(guildId, values);
+  }, [methods, guildId]);
+  
   const isDirty = useCallback(() => {
       return methods.formState.isDirty;
   }, [methods.formState.isDirty]);
-
-  const onSave = useCallback(() => {
-      const values = methods.getValues();
-      return saveCommandConfig(guildId, values);
-  }, [methods, guildId]);
 
   useEffect(() => {
     registerPanel(PANEL_ID, { onSave, isDirty });
@@ -215,3 +214,4 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
+

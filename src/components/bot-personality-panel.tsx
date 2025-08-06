@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { useSettings } from '@/contexts/settings-context';
-import { saveGenericConfig } from '@/lib/bot-api';
+import { saveGenericConfigAction } from '@/app/actions';
 
 type Personality = 'amigavel' | 'sarcastico' | 'formal';
 
@@ -40,7 +41,7 @@ export function BotPersonalityPanel({ guildId }: { guildId: string }) {
     }, [personality, customPrompt, initialSettings]);
     
     const onSave = useCallback(() => {
-        return saveGenericConfig(guildId, {
+        return saveGenericConfigAction(guildId, {
             personality,
             customPrompt
         });

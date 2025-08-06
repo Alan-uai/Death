@@ -1,54 +1,51 @@
-
 'use client';
+
+// Este arquivo contém funções auxiliares para interagir com a API do bot,
+// mas APENAS para chamadas que NÃO requerem um segredo de API.
+// Chamadas seguras devem ser feitas através de Server Actions.
 
 import type { CustomCommand } from './types';
 
-// This should point to your bot's backend server
-const BOT_API_BASE_URL = process.env.BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
-const API_SECRET = process.env.BOT_API_SECRET;
+// Este deve apontar para o servidor de backend do seu bot
+const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL;
 
 async function postToBotApi(endpoint: string, body: object) {
-    if (!API_SECRET) {
-        console.error('A variável de ambiente BOT_API_SECRET não está definida.');
-        throw new Error('A variável de ambiente BOT_API_SECRET não está definida.');
+    if (!BOT_API_BASE_URL) {
+        console.error('A variável de ambiente NEXT_PUBLIC_BOT_API_URL não está definida.');
+        throw new Error('A URL da API não está configurada.');
     }
 
     const response = await fetch(`${BOT_API_BASE_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${API_SECRET}`
         },
         body: JSON.stringify(body)
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
-        throw new Error(`Falha na API do Bot: ${errorData.message}`);
+        let errorMessage = 'Ocorreu um erro desconhecido.';
+        try {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+            // A resposta pode não ser JSON, use o texto bruto
+            errorMessage = await response.text();
+        }
+        console.error(`Falha na API do Bot (${endpoint}):`, errorMessage);
+        throw new Error(`Falha na API do Bot: ${errorMessage}`);
     }
 
     return response.json();
 }
 
-export async function saveCommandConfig(guildId: string, command: CustomCommand) {
-    return postToBotApi('config-command', { guildId, command });
-}
 
-export async function saveChannelConfig(guildId: string, config: { mode: string; suggestions: { enabled: boolean; }; reports: { enabled: boolean; }; }) {
-    // We need to send a flattened structure to the bot backend
-    const payload = {
-        guildId,
-        mode: config.mode,
-        suggestions_enabled: config.suggestions.enabled,
-        reports_enabled: config.reports.enabled,
-    };
-    return postToBotApi('config-channel', payload);
-}
-
-export async function saveGenericConfig(guildId: string, config: object) {
-    return postToBotApi('config-generic', { guildId, ...config });
-}
-
+// Esta função é chamada pelo lado do cliente, mas a chamada segura é feita por uma Server Action.
+// A lógica real de `setOwner` com segredo foi movida para `actions.ts`.
+// Esta função permanece para compatibilidade, mas a chamada segura real está na Server Action.
 export async function setOwner(userId: string) {
-    return postToBotApi('set-owner', { userId });
+    // A implementação real e segura está em `setOwnerAction` em `src/app/actions.ts`
+    console.warn("A função `setOwner` em `bot-api.ts` não deve ser chamada diretamente para operações seguras. Use `setOwnerAction`.");
+    // Retornando uma promessa resolvida para evitar quebrar o fluxo existente que pode ainda chamá-la.
+    return Promise.resolve();
 }

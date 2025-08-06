@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
-import { saveChannelConfig } from '@/lib/bot-api';
+import { saveChannelConfigAction } from '@/app/actions';
 import { useSettings } from '@/contexts/settings-context';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
@@ -39,7 +39,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   }, [mode, enableSuggestions, enableReports, initialSettings]);
   
   const onSave = useCallback(() => {
-    return saveChannelConfig(guildId, {
+    return saveChannelConfigAction(guildId, {
         mode,
         suggestions: { enabled: enableSuggestions },
         reports: { enabled: enableReports }
@@ -145,3 +145,4 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
+

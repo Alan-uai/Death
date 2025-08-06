@@ -9,6 +9,60 @@ import type { CustomCommand } from '@/lib/types';
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
+// --- Bot API Secure Calls ---
+const BOT_API_BASE_URL = process.env.BOT_API_URL;
+const BOT_API_SECRET = process.env.BOT_API_SECRET;
+
+
+async function postToBotApi(endpoint: string, body: object) {
+    if (!BOT_API_BASE_URL || !BOT_API_SECRET) {
+        const errorMsg = 'BOT_API_URL ou BOT_API_SECRET não estão configurados no servidor.';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+    }
+
+    const response = await fetch(`${BOT_API_BASE_URL}/api/${endpoint}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${BOT_API_SECRET}`
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
+        console.error(`Falha na API do Bot (${endpoint}):`, errorData);
+        throw new Error(`Falha na API do Bot: ${errorData.message}`);
+    }
+
+    return response.json();
+}
+
+
+export async function saveCommandConfigAction(guildId: string, command: CustomCommand) {
+    return postToBotApi('config-command', { guildId, command });
+}
+
+export async function saveChannelConfigAction(guildId: string, config: { mode: string; suggestions: { enabled: boolean; }; reports: { enabled: boolean; }; }) {
+    const payload = {
+        guildId,
+        mode: config.mode,
+        suggestions_enabled: config.suggestions.enabled,
+        reports_enabled: config.reports.enabled,
+    };
+    return postToBotApi('config-channel', payload);
+}
+
+export async function saveGenericConfigAction(guildId: string, config: object) {
+    return postToBotApi('config-generic', { guildId, ...config });
+}
+
+export async function setOwnerAction(userId: string) {
+    return postToBotApi('set-owner', { userId });
+}
+
+
 // Cached fetch function to avoid rate limits
 const fetchDiscordApi = cache(async (endpoint: string, options: RequestInit) => {
     const res = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
@@ -116,3 +170,4 @@ export const getCustomCommandAction = cache(async (
       return null;
     }
 });
+

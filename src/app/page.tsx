@@ -6,12 +6,11 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getManageableGuildsAction, getCurrentUserAction } from '@/app/actions';
+import { getManageableGuildsAction, getCurrentUserAction, setOwnerAction } from '@/app/actions';
 import type { DiscordGuild, DiscordUser } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ArrowRight, LogOut } from 'lucide-react';
-import { setOwner } from '@/lib/bot-api';
 import { useToast } from '@/hooks/use-toast';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
@@ -117,7 +116,7 @@ export default function Home() {
           return;
       }
       try {
-          await setOwner(user.id);
+          await setOwnerAction(user.id);
           const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&guild_id=${guildId}&permissions=${DISCORD_PERMISSIONS}&scope=bot%20applications.commands`;
           window.open(inviteUrl, '_blank');
       } catch (error) {

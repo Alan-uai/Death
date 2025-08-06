@@ -38,11 +38,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setPanelRegistrations(prev => ({...prev, [panelId]: registration}));
   }, []);
 
-    const discardChanges = useCallback(() => {
-        // This will trigger a re-render in the panels, which should reset their state
-        // to the initial data because their `key` will change or they will re-fetch.
-        // A simpler approach for now is just to reload, which is stateless.
-        window.location.reload();
+  const discardChanges = useCallback(() => {
+    // This will trigger a re-render in the panels, which should reset their state
+    // to the initial data because their `key` will change or they will re-fetch.
+    // A simpler approach for now is just to reload, which is stateless.
+    window.location.reload();
   }, []);
 
   const saveChanges = async (guildId: string) => {

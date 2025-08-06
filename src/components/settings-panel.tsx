@@ -6,7 +6,7 @@ import type { DiscordChannel } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { saveGenericConfig } from '@/lib/bot-api';
+import { saveGenericConfigAction } from '@/app/actions';
 import { useSettings } from '@/contexts/settings-context';
 
 interface SettingsPanelProps {
@@ -37,7 +37,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   }, [qaChannel, buildsChannel, initialSettings]);
 
   const onSave = useCallback(() => {
-    return saveGenericConfig(guildId, { qaChannel, buildsChannel });
+    return saveGenericConfigAction(guildId, { qaChannel, buildsChannel });
   }, [guildId, qaChannel, buildsChannel]);
 
   useEffect(() => {
