@@ -11,6 +11,7 @@ const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const fetchDiscordApi = cache(async (endpoint: string, token: string) => {
     const res = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
         headers: { Authorization: `Bearer ${token}` },
+        next: { revalidate: 60 } // Cache for 60 seconds
     });
     if (!res.ok) {
         console.error(`Discord API Error (${endpoint}): ${res.status}`, await res.text());
@@ -25,6 +26,7 @@ const getBotGuilds = cache(async (): Promise<DiscordGuild[]> => {
     }
     const res = await fetch(`${DISCORD_API_BASE}/users/@me/guilds`, {
         headers: { Authorization: `Bot ${BOT_TOKEN}` },
+        next: { revalidate: 60 } // Cache for 60 seconds
     });
      if (!res.ok) {
         console.error(`Discord API Error (/users/@me/guilds for bot): ${res.status}`, await res.text());
