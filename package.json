@@ -10,7 +10,7 @@
     "build": "next build",
     "start": "npm-run-all --parallel start:next start:bot",
     "start:next": "next start",
-    "start:bot": "node -r dotenv/config -r tsx/esm src/ai/dev.ts",
+    "start:bot": "node -r dotenv/config ./node_modules/.bin/genkit start -- tsx src/ai/dev.ts",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
