@@ -1,10 +1,8 @@
 
 'use client';
 
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { saveChannelConfig, saveCommandConfig, saveGenericConfig } from '@/lib/bot-api';
-import { CustomCommand } from '@/lib/types';
 
 type SettingsValue = Record<string, any>;
 
@@ -30,14 +28,19 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const isDirty = Object.keys(dirtySettings).length > 0;
 
   const updateSetting = useCallback((key: string, value: SettingsValue) => {
-    if (initialSettings[key] === undefined) {
-       setInitialSettings(prev => ({ ...prev, [key]: value }));
-    }
+    // If the setting is not in initialSettings, set it.
+    // This happens on the first render of a panel.
+    setInitialSettings(prev => {
+        if (!prev[key]) {
+            return { ...prev, [key]: value };
+        }
+        return prev;
+    });
     setDirtySettings(prev => ({ ...prev, [key]: value }));
-  }, [initialSettings]);
+  }, []);
 
   const getSetting = useCallback(<T>(key: string): T | undefined => {
-    return dirtySettings[key] as T || initialSettings[key] as T;
+    return (dirtySettings[key] ?? initialSettings[key]) as T | undefined;
   }, [dirtySettings, initialSettings]);
 
 
@@ -56,6 +59,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       if (saver) {
         return saver(guildId, data);
       }
+      console.warn(`No saver registered for panel key: ${key}`);
       return Promise.resolve();
     });
 
@@ -65,6 +69,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
         title: 'Sucesso!',
         description: 'Todas as configurações foram salvas e enviadas para o bot.',
       });
+      // Merge dirty settings into initial settings and clear dirty state
       setInitialSettings(prev => ({ ...prev, ...dirtySettings }));
       setDirtySettings({});
     } catch (error) {
