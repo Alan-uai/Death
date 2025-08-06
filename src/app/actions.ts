@@ -102,13 +102,15 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     }
 }
 
-export async function registerCommandsAction(guildId: string): Promise<boolean> {
+export async function registerCommandsAction(guildId: string, enabled: boolean): Promise<boolean> {
     try {
-        await registerGuildCommands(guildId);
-        console.log(`Comandos registrados com sucesso para o servidor ${guildId}`);
+        await registerGuildCommands(guildId, enabled);
+        const action = enabled ? 'registrados' : 'removidos';
+        console.log(`Comandos ${action} com sucesso para o servidor ${guildId}`);
         return true;
     } catch (error) {
-        console.error(`Erro ao registrar comandos para o servidor ${guildId}:`, error);
+        const action = enabled ? 'registrar' : 'remover';
+        console.error(`Erro ao ${action} comandos para o servidor ${guildId}:`, error);
         return false;
     }
 }
@@ -135,7 +137,8 @@ export async function manageReportChannelAction(
   try {
     const result = await manageReportChannel(input);
     return result;
-  } catch (error) {
+  } catch (error)
+ {
     console.error('Erro na ação manageReportChannelAction:', error);
     const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
     return {

@@ -1,42 +1,42 @@
 
+import { REST, Routes } from 'discord.js';
+
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
 const commands = [
-  // O comando 'suggest-build' foi removido conforme a solicitação.
-  // A funcionalidade de sugestão agora é gerenciada pela criação automática de canais.
+  {
+    name: 'sugestao',
+    description: 'Guia o usuário para o canal de sugestões.',
+  },
+  {
+    name: 'denunciar',
+    description: 'Abre um formulário para criar uma denúncia privada.',
+  },
 ];
 
-async function registerGuildCommands(guildId: string): Promise<void> {
-  if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_BOT_TOKEN) {
+async function registerGuildCommands(guildId: string, enable: boolean): Promise<void> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const clientId = process.env.DISCORD_CLIENT_ID;
+
+  if (!clientId || !token) {
     throw new Error('Variáveis de ambiente DISCORD_CLIENT_ID ou DISCORD_BOT_TOKEN ausentes.');
   }
+  
+  const rest = new REST({ version: '10' }).setToken(token);
 
-  const url = `${DISCORD_API_BASE_URL}/applications/${process.env.DISCORD_CLIENT_ID}/guilds/${guildId}/commands`;
+  const body = enable ? commands : [];
 
-  // Se não houver comandos para registrar, podemos simplesmente retornar ou enviar um array vazio.
-  // Enviar um array vazio removerá todos os comandos globais do servidor.
-  const body = commands.length > 0 ? JSON.stringify(commands) : '[]';
+  try {
+    console.log(`Iniciando a ${enable ? 'inscrição' : 'remoção'} de ${commands.length} comandos (/) de aplicação.`);
 
-  const response = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-    },
-    body: body,
-  });
+    await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
+      { body },
+    );
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Falha ao registrar comandos para o servidor ${guildId}:`, errorText);
-    throw new Error(`Erro na API do Discord: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  if (data.length > 0) {
-      console.log(`Registrado(s) ${data.length} comando(s) com sucesso para o servidor ${guildId}.`);
-  } else {
-      console.log(`Todos os comandos do servidor foram removidos para o servidor ${guildId}.`);
+    console.log(`Comandos de aplicação (/) foram ${enable ? 'recarregados' : 'removidos'} com sucesso.`);
+  } catch (error) {
+    console.error(error);
   }
 }
 

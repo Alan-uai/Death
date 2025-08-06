@@ -28,6 +28,7 @@ export type ManageSuggestionChannelInput = z.infer<
 const ManageSuggestionChannelOutputSchema = z.object({
   success: z.boolean().describe('Whether the operation was successful.'),
   message: z.string().describe('A message detailing the result.'),
+  channelId: z.string().optional().describe('The ID of the created or found channel.'),
 });
 export type ManageSuggestionChannelOutput = z.infer<
   typeof ManageSuggestionChannelOutputSchema
@@ -65,7 +66,8 @@ const manageSuggestionChannelFlow = ai.defineFlow(
       if (existingChannel) {
         return {
           success: true,
-          message: `Um canal de sugestões já existe: #${existingChannel.name}`,
+          message: `O canal de sugestões #${existingChannel.name} já existe.`,
+          channelId: existingChannel.id,
         };
       }
 
@@ -85,14 +87,11 @@ const manageSuggestionChannelFlow = ai.defineFlow(
             { name: 'Em Análise', emoji_name: '👀' }
         ],
       });
-
-      // To add a second reaction (e.g., 👎), a bot would need to listen to
-      // ThreadCreate events and add the reaction programmatically.
-      // For this prototype, one default reaction is a good starting point.
       
       return {
         success: true,
         message: `Canal de fórum #${newChannel.name} criado com sucesso!`,
+        channelId: newChannel.id,
       };
     } catch (error) {
       const errorMessage =

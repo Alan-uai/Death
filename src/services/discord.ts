@@ -58,7 +58,6 @@ async function fetchDiscordApi<T>(
     throw new Error(`Failed to fetch from Discord API: ${endpoint}. Status: ${response.status}. Body: ${errorText}`);
   }
 
-  // Some responses might be empty (e.g., 204 No Content)
   if (response.status === 204) {
     return null as T;
   }
@@ -134,6 +133,22 @@ export async function createGuildChannel(
 
   return newChannel;
 }
+
+export async function sendMessage(channelId: string, message: object): Promise<void> {
+    if (!process.env.DISCORD_BOT_TOKEN) {
+        throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
+    }
+
+    await fetchDiscordApi(
+        `/channels/${channelId}/messages`,
+        process.env.DISCORD_BOT_TOKEN,
+        {
+            method: 'POST',
+            body: message
+        }
+    );
+}
+
 
 export async function getGuildRoles(guildId: string): Promise<{ id: string, name: string }[]> {
    if (!process.env.DISCORD_BOT_TOKEN) {

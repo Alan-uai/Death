@@ -4,7 +4,7 @@
 /**
  * @fileOverview A flow to manage a reports channel in a Discord guild.
  *
- * - manageReportChannel - Creates a private reports channel if it doesn't exist.
+ * - manageReportChannel - Creates a public reports channel with a button to create a report.
  * - ManageReportChannelInput - The input type for the manageReportChannel function.
  * - ManageReportChannelOutput - The return type for the manageReportChannel function.
  */
@@ -14,9 +14,10 @@ import { z } from 'zod';
 import {
   getGuildChannels,
   createGuildChannel,
-  getGuildRoles,
   DiscordChannel,
+  sendMessage,
 } from '@/services/discord';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 const ManageReportChannelInputSchema = z.object({
   guildId: z.string().describe('The ID of the Discord guild (server).'),
@@ -29,6 +30,7 @@ export type ManageReportChannelInput = z.infer<
 const ManageReportChannelOutputSchema = z.object({
   success: z.boolean().describe('Whether the operation was successful.'),
   message: z.string().describe('A message detailing the result.'),
+  channelId: z.string().optional().describe('The ID of the created or found channel.'),
 });
 export type ManageReportChannelOutput = z.infer<
   typeof ManageReportChannelOutputSchema
@@ -65,34 +67,39 @@ const manageReportChannelFlow = ai.defineFlow(
       if (reportChannel) {
         return {
           success: true,
-          message: `Um canal de denúncias já existe: #${reportChannel.name}. As denúncias criarão tópicos privados nele.`,
+          message: `O canal de denúncias #${reportChannel.name} já existe.`,
+          channelId: reportChannel.id,
         };
-      }
-
-      // Find the @everyone role to set permissions
-      const roles = await getGuildRoles(guildId);
-      const everyoneRole = roles.find(role => role.name === '@everyone');
-      if (!everyoneRole) {
-        throw new Error('Não foi possível encontrar o cargo @everyone.');
       }
       
       const newChannel = await createGuildChannel(guildId, {
         name: 'denuncias',
         type: 0, // 0 = Text Channel
-        topic: 'Canal para denúncias. Use o comando /denunciar para criar um tópico privado.',
-        permission_overwrites: [
-          {
-            id: everyoneRole.id,
-            type: 0, // 0 = Role
-            deny: '1024', // 1024 = VIEW_CHANNEL
-            allow: '0',
-          },
-        ],
+        topic: 'Clique no botão abaixo para abrir um tópico de denúncia privado.',
+      });
+
+      // Create the button
+      const openReportButton = new ButtonBuilder()
+            .setCustomId('open_report_modal')
+            .setLabel('Abrir Denúncia')
+            .setStyle(ButtonStyle.Danger);
+
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(openReportButton);
+      
+      // Send message with the button to the newly created channel
+      await sendMessage(newChannel.id, {
+        embeds: [{
+          title: 'Sistema de Denúncias',
+          description: 'Para criar uma denúncia de forma anônima e segura, clique no botão abaixo. Um tópico privado, visível apenas para você e a moderação, será criado.',
+          color: 0xed4245, // Red color
+        }],
+        components: [row.toJSON()],
       });
 
       return {
         success: true,
-        message: `Canal de texto privado #${newChannel.name} criado com sucesso! Use o comando /denunciar para criar tópicos privados.`,
+        message: `Canal de texto público #${newChannel.name} criado com sucesso!`,
+        channelId: newChannel.id,
       };
     } catch (error) {
       const errorMessage =
