@@ -9,19 +9,25 @@ import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getManageableGuildsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
+import { ArrowRight, LogOut } from 'lucide-react';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
+const DISCORD_PERMISSIONS = '8'; // Administrator permissions
+
+type ManageableGuild = DiscordGuild & { bot_present: boolean };
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [guilds, setGuilds] = useState<DiscordGuild[]>([]);
+  const [guilds, setGuilds] = useState<ManageableGuild[]>([]);
   const [selectedGuild, setSelectedGuild] = useState<DiscordGuild | null>(null);
   const [oauthUrl, setOauthUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const redirectUri = window.location.origin;
-    setOauthUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify%20guilds`);
+    // Added guilds.join scope
+    setOauthUrl(`https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=identify%20guilds%20guilds.join`);
     
     const hash = window.location.hash;
     if (hash) {
@@ -61,7 +67,6 @@ export default function Home() {
           setGuilds(manageableGuilds);
         } catch (error) {
           console.error('Erro ao buscar servidores gerenciáveis:', error);
-          // Handle token expiration or invalidation
           localStorage.removeItem('discord_access_token');
           setIsLoggedIn(false);
         } finally {
@@ -92,6 +97,11 @@ export default function Home() {
     localStorage.setItem('selected_guild', JSON.stringify(guild));
     setSelectedGuild(guild);
   }
+  
+  const handleInvite = (guildId: string) => {
+      const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&guild_id=${guildId}&permissions=${DISCORD_PERMISSIONS}&scope=bot%20applications.commands`;
+      window.open(inviteUrl, '_blank');
+  };
 
   const handleGoBack = () => {
     localStorage.removeItem('selected_guild');
@@ -133,7 +143,7 @@ export default function Home() {
                     </div>
                     <CardTitle className="text-2xl font-bold">Configure seu Bot do Discord</CardTitle>
                     <CardDescription className="text-muted-foreground">
-                        Faça login com sua conta do Discord para selecionar um servidor e configurar o bot.
+                        Faça login com sua conta do Discord para gerenciar os servidores.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
@@ -146,43 +156,87 @@ export default function Home() {
     );
   }
 
+  const guildsWithBot = guilds.filter(g => g.bot_present);
+  const guildsWithoutBot = guilds.filter(g => !g.bot_present);
+
   return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
-          <Card className="w-full max-w-lg bg-card text-card-foreground shadow-2xl border-border">
-              <CardHeader>
-                  <CardTitle>Selecione um Servidor</CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                      Escolha um servidor para configurar. Somente servidores onde o bot já está presente e você tem permissão aparecerão.
-                  </CardDescription>
-              </CardHeader>
-              <CardContent className="max-h-96 overflow-y-auto">
-                  <div className="space-y-2">
-                      {guilds.length > 0 ? (
-                          guilds.map(guild => (
-                              <div key={guild.id} className="flex items-center justify-between rounded-lg bg-secondary p-3">
-                                  <div className="flex items-center space-x-3">
-                                      {guild.icon ? (
-                                        <img src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`} alt={guild.name} className="h-10 w-10 rounded-full" />
-                                      ) : (
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                                            {guild.name.charAt(0)}
-                                        </div>
-                                      )}
-                                      <span className="font-medium">{guild.name}</span>
-                                  </div>
-                                  <Button onClick={() => handleSelect(guild)} className="bg-primary hover:bg-primary/80">
-                                      Configurar
-                                  </Button>
-                              </div>
-                          ))
-                      ) : (
-                          <p className="text-muted-foreground">Nenhum servidor gerenciável encontrado. Certifique-se de que o bot está em um servidor onde você tem permissão de 'Gerenciar Servidor'.</p>
-                      )}
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-4 md:p-8">
+          <Card className="w-full max-w-2xl bg-card text-card-foreground shadow-2xl border-border">
+              <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Selecione um Servidor</CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                        Gerencie um servidor existente ou adicione o bot a um novo.
+                    </CardDescription>
                   </div>
+                  <Button variant="outline" size="sm" onClick={handleLogout}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sair
+                  </Button>
+              </CardHeader>
+              <CardContent className="max-h-[70vh] overflow-y-auto p-4 space-y-6">
+                  {guilds.length > 0 ? (
+                      <>
+                          {guildsWithBot.length > 0 && (
+                            <div>
+                              <h3 className="text-sm font-semibold text-muted-foreground px-2 mb-2">CONFIGURAR SERVIDORES</h3>
+                              <div className="space-y-2">
+                                  {guildsWithBot.map(guild => (
+                                      <div key={guild.id} className="flex items-center justify-between rounded-lg bg-secondary p-3 hover:bg-secondary/80 transition-colors">
+                                          <div className="flex items-center space-x-3">
+                                              {guild.icon ? (
+                                                <img src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`} alt={guild.name} className="h-10 w-10 rounded-full" />
+                                              ) : (
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                    {guild.name.charAt(0)}
+                                                </div>
+                                              )}
+                                              <span className="font-medium">{guild.name}</span>
+                                          </div>
+                                          <Button onClick={() => handleSelect(guild)} className="bg-primary hover:bg-primary/80">
+                                              Gerenciar
+                                          </Button>
+                                      </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {guildsWithBot.length > 0 && guildsWithoutBot.length > 0 && <Separator />}
+
+                          {guildsWithoutBot.length > 0 && (
+                            <div>
+                               <h3 className="text-sm font-semibold text-muted-foreground px-2 mb-2">ADICIONAR A SERVIDORES</h3>
+                               <div className="space-y-2">
+                                  {guildsWithoutBot.map(guild => (
+                                      <div key={guild.id} className="flex items-center justify-between rounded-lg bg-secondary p-3 hover:bg-secondary/80 transition-colors">
+                                          <div className="flex items-center space-x-3">
+                                              {guild.icon ? (
+                                                <img src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`} alt={guild.name} className="h-10 w-10 rounded-full" />
+                                              ) : (
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                                                    {guild.name.charAt(0)}
+                                                </div>
+                                              )}
+                                              <span className="font-medium">{guild.name}</span>
+                                          </div>
+                                          <Button onClick={() => handleInvite(guild.id)} variant="outline">
+                                              Convidar Bot
+                                              <ArrowRight className="ml-2 h-4 w-4" />
+                                          </Button>
+                                      </div>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                      </>
+                  ) : (
+                      <p className="text-muted-foreground text-center py-8">
+                        Nenhum servidor onde você tem permissão de 'Gerenciar Servidor' foi encontrado.
+                      </p>
+                  )}
               </CardContent>
-               <CardFooter className="flex justify-end pt-4">
-                  <Button variant="destructive" onClick={handleLogout}>Sair</Button>
-              </CardFooter>
           </Card>
       </main>
   );

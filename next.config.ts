@@ -22,6 +22,12 @@ const nextConfig: NextConfig = {
         hostname: 'cdn.discordapp.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'discord.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
@@ -36,7 +42,8 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     NEXT_PUBLIC_FIREBASE_APP_ID: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
     NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
-    NEXT_PUBLIC_BOT_API_SECRET: process.env.NEXT_PUBLIC_BOT_API_SECRET,
+    BOT_API_URL: process.env.BOT_API_URL,
+    BOT_API_SECRET: process.env.BOT_API_SECRET,
   }
 };
 

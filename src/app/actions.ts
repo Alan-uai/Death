@@ -5,7 +5,59 @@ import { db } from '@/lib/firebase-admin';
 import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import type { CustomCommand } from '@/lib/types';
 
-const BOT_API_BASE_URL = process.env.BOT_API_URL || 'https://deathbot-o2pa.onrender.com';
+const DISCORD_API_BASE = 'https://discord.com/api/v10';
+const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+
+async function fetchDiscordApi(endpoint: string, token: string) {
+    const res = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+        console.error(`Discord API Error (${endpoint}): ${res.status}`, await res.text());
+        throw new Error(`Failed to fetch from Discord API: ${endpoint}`);
+    }
+    return res.json();
+}
+
+async function getBotGuilds(): Promise<DiscordGuild[]> {
+    if (!BOT_TOKEN) {
+        throw new Error("DISCORD_BOT_TOKEN is not configured.");
+    }
+    const res = await fetch(`${DISCORD_API_BASE}/users/@me/guilds`, {
+        headers: { Authorization: `Bot ${BOT_TOKEN}` },
+    });
+     if (!res.ok) {
+        console.error(`Discord API Error (/users/@me/guilds for bot): ${res.status}`, await res.text());
+        throw new Error('Failed to fetch bot guilds from Discord API.');
+    }
+    return res.json();
+}
+
+export const getManageableGuildsAction = cache(async (
+  accessToken: string
+): Promise<Array<DiscordGuild & { bot_present: boolean }>> => {
+    try {
+        const [userGuilds, botGuilds] = await Promise.all([
+            fetchDiscordApi(`/users/@me/guilds`, accessToken),
+            getBotGuilds()
+        ]);
+        
+        const botGuildIds = new Set(botGuilds.map(g => g.id));
+
+        const manageableGuilds = userGuilds
+            .filter((guild: any) => (BigInt(guild.permissions) & 0x20n) === 0x20n) // MANAGE_GUILD permission
+            .map((guild: DiscordGuild) => ({
+                ...guild,
+                bot_present: botGuildIds.has(guild.id),
+            }));
+
+        return manageableGuilds;
+    } catch (error) {
+        console.error('Error getting manageable guilds:', error);
+        return [];
+    }
+});
+
 
 export const getGuildChannelsAction = cache(async (
   guildId: string
@@ -22,31 +74,8 @@ export const getGuildChannelsAction = cache(async (
         return snapshot.docs.map(doc => doc.data() as DiscordChannel);
     }
     
-    // Se não houver no cache, não faremos mais a chamada para a API do Discord aqui.
-    // A criação de canais e o salvamento serão tratados pelo bot.
     return [];
 });
-
-
-export async function getManageableGuildsAction(accessToken: string): Promise<DiscordGuild[]> {
-    try {
-        const response = await fetch(`${BOT_API_BASE_URL}/api/guilds`, {
-             headers: { Authorization: `Bearer ${accessToken}` },
-        });
-
-        if (!response.ok) {
-            console.error('Failed to fetch from Bot API.', await response.text());
-            throw new Error(`Failed to fetch from Bot API. Status: ${response.status}`);
-        }
-
-        const guilds = await response.json();
-        return guilds as DiscordGuild[];
-
-    } catch (error) {
-        console.error('Erro ao obter servidores gerenciáveis do bot:', error);
-        return [];
-    }
-}
 
 export const getCustomCommandAction = cache(async (
   commandId: string
