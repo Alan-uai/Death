@@ -1,6 +1,7 @@
 
 'use server';
 
+import { cache } from 'react';
 import {
   answerGameQuestions,
   type AnswerGameQuestionsInput,
@@ -53,9 +54,9 @@ export async function getBotStatusAction(): Promise<string> {
   }
 }
 
-export async function getGuildChannelsAction(
+export const getGuildChannelsAction = cache(async (
   guildId: string
-): Promise<DiscordChannel[]> {
+): Promise<DiscordChannel[]> => {
   try {
     // First, try to get channels from Firestore if db is available
     if (db) {
@@ -80,7 +81,7 @@ export async function getGuildChannelsAction(
     // Return an empty array on error to avoid crashing the UI
     return [];
   }
-}
+});
 
 export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     try {
