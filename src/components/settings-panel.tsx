@@ -2,18 +2,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { DiscordChannel } from '@/services/discord';
+import type { DiscordChannel } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { saveCustomCommandAction } from '@/app/actions';
 
 interface SettingsPanelProps {
   channels: DiscordChannel[];
+  guildId: string;
 }
 
-export function SettingsPanel({ channels }: SettingsPanelProps) {
+export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   const { toast } = useToast();
   const [qaChannel, setQaChannel] = useState<string>('any');
   const [buildsChannel, setBuildsChannel] = useState<string>('any');
@@ -22,24 +24,50 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
   const textChannels = channels.filter(c => c.type === 0);
 
   useEffect(() => {
-    const savedQaChannel = localStorage.getItem('settings_qaChannel') || 'any';
-    const savedBuildsChannel = localStorage.getItem('settings_buildsChannel') || 'any';
+    // In a real app, you would fetch these settings from Firestore
+    const savedQaChannel = localStorage.getItem(`settings_qaChannel_${guildId}`) || 'any';
+    const savedBuildsChannel = localStorage.getItem(`settings_buildsChannel_${guildId}`) || 'any';
     setQaChannel(savedQaChannel);
     setBuildsChannel(savedBuildsChannel);
-  }, []);
+  }, [guildId]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    localStorage.setItem('settings_qaChannel', qaChannel);
-    localStorage.setItem('settings_buildsChannel', buildsChannel);
+    
+    // Save settings to Firestore via a 'custom command' for simplicity
+    const settingsPayload = {
+      id: `settings-${guildId}`,
+      name: `Configurações para ${guildId}`,
+      description: 'Configurações gerais do bot para este servidor.',
+      responseType: 'container',
+      response: {
+        container: JSON.stringify({
+          qaChannel: qaChannel,
+          buildsChannel: buildsChannel,
+        })
+      }
+    };
 
-    setTimeout(() => {
-      setIsSaving(false);
+    const result = await saveCustomCommandAction(settingsPayload);
+    
+    if (result.success) {
       toast({
         title: "Configurações Salvas",
-        description: "Suas novas configurações foram aplicadas.",
+        description: "Suas novas configurações foram salvas no Firestore. O bot as usará em breve.",
       });
-    }, 1000);
+    } else {
+       toast({
+        variant: 'destructive',
+        title: "Erro ao Salvar",
+        description: result.message,
+      });
+    }
+
+    // Also save to localStorage for instant UI feedback
+    localStorage.setItem(`settings_qaChannel_${guildId}`, qaChannel);
+    localStorage.setItem(`settings_buildsChannel_${guildId}`, buildsChannel);
+
+    setIsSaving(false);
   };
 
   return (
@@ -48,7 +76,7 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle>Configuração do Bot</CardTitle>
           <CardDescription>
-            Configure onde as funcionalidades do bot estão ativas e como ele responde.
+            Configure onde as funcionalidades do bot estão ativas. As configurações são salvas no Firestore para o bot ler.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -105,3 +133,5 @@ export function SettingsPanel({ channels }: SettingsPanelProps) {
     </div>
   );
 }
+
+    

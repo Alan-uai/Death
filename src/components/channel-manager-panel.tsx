@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { manageSuggestionChannelAction, manageReportChannelAction } from '@/app/actions';
+import { saveCustomCommandAction } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
@@ -14,6 +14,8 @@ type ManagementMode = 'slash' | 'channels' | 'both';
 
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const { toast } = useToast();
+  // NOTE: This state is for UI demonstration only.
+  // The bot will read the configuration from Firestore.
   const [mode, setMode] = useState<ManagementMode>('slash');
   const [enableSuggestions, setEnableSuggestions] = useState(false);
   const [enableReports, setEnableReports] = useState(false);
@@ -23,49 +25,45 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     feature: 'suggestions' | 'reports', 
     enabled: boolean
   ) => {
-    if (!enabled) {
-        if (feature === 'suggestions') setEnableSuggestions(false);
-        if (feature === 'reports') setEnableReports(false);
-        toast({ title: 'Desativado', description: `A criação do canal de ${feature} foi desativada.` });
-        return;
-    }
-
     setProcessing(feature);
 
-    const action = feature === 'suggestions' 
-      ? manageSuggestionChannelAction 
-      : manageReportChannelAction;
+    const commandId = feature === 'suggestions' ? 'config-suggestions' : 'config-reports';
+    const name = feature === 'suggestions' ? 'Configuração de Sugestões' : 'Configuração de Denúncias';
     
-    const input = { guildId, enable: enabled };
-
     try {
-      const result = await action(input as any);
+      await saveCustomCommandAction({
+        id: commandId,
+        name: name,
+        description: `Configuração para o módulo de ${feature}.`,
+        responseType: 'container', // Using 'container' to store simple boolean
+        response: {
+          container: JSON.stringify({
+            guildId,
+            enabled,
+            mode // Save the current mode as well
+          })
+        }
+      });
 
-      if (result.success) {
-        toast({
-          title: `Canal de ${feature === 'suggestions' ? 'Sugestões' : 'Denúncias'} Ativado!`,
-          description: result.message,
-        });
+      if (enabled) {
         if (feature === 'suggestions') setEnableSuggestions(true);
         if (feature === 'reports') setEnableReports(true);
       } else {
-        toast({
-          variant: 'destructive',
-          title: 'Erro ao Ativar Canal',
-          description: result.message,
-        });
         if (feature === 'suggestions') setEnableSuggestions(false);
         if (feature === 'reports') setEnableReports(false);
       }
+
+      toast({
+        title: 'Configuração Salva!',
+        description: `O módulo de ${feature} foi ${enabled ? 'ativado' : 'desativado'}. O bot aplicará a nova configuração em breve.`,
+      });
     } catch (error) {
-      console.error(`Falha ao gerenciar canal de ${feature}:`, error);
+      console.error(`Falha ao salvar configuração de ${feature}:`, error);
       toast({
         variant: 'destructive',
         title: 'Erro Inesperado',
-        description: 'Não foi possível completar a ação. Tente novamente.',
+        description: 'Não foi possível salvar a configuração. Tente novamente.',
       });
-      if (feature === 'suggestions') setEnableSuggestions(false);
-      if (feature === 'reports') setEnableReports(false);
     } finally {
       setProcessing(null);
     }
@@ -80,7 +78,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor: através de canais automatizados, comandos de barra (/) ou ambos. O registro dos comandos é feito automaticamente pelo bot.
+            Escolha como o bot deve interagir com o servidor. As configurações são salvas e o bot as lerá para registrar comandos ou criar canais.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -112,13 +110,13 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
           {showChannels && (
             <div className="space-y-4 pt-4 border-t">
                  <h3 className="text-lg font-medium">Canais Automatizados</h3>
-                 <p className="text-sm text-muted-foreground">Ative para que o bot crie e gerencie canais para funcionalidades específicas.</p>
+                 <p className="text-sm text-muted-foreground">Ative para que seu bot crie e gerencie canais para funcionalidades específicas.</p>
                 {/* Suggestions Channel */}
                 <div className="flex items-center justify-between rounded-lg border p-4">
                   <div className="space-y-1">
                     <Label htmlFor="suggestions-switch" className="text-base">Canal de Sugestões</Label>
                     <p className="text-sm text-muted-foreground">
-                      Cria um canal de fórum #sugestoes para a comunidade com reações.
+                      Cria um canal de fórum #sugestoes para a comunidade.
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
@@ -157,11 +155,11 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                 <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-lg font-medium">Comandos de Barra (/)</h3>
                      <p className="text-sm text-muted-foreground">
-                        Os seguintes comandos de barra estão ativos no servidor:
+                        Seu bot lerá esta configuração e registrará os seguintes comandos de barra no servidor:
                      </p>
                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                         <li><code className="bg-muted p-1 rounded-sm">/denunciar</code> - Inicia o processo para criar uma denúncia privada.</li>
-                        <li><code className="bg-muted p-1 rounded-sm">/sugestao</code> - Guia o usuário para o canal de sugestões.</li>
+                        <li><code className="bg-muted p-1 rounded-sm">/sugestao</code> - Guia o usuário para o canal de sugestões, se existir.</li>
                      </ul>
                 </div>
             )}
@@ -170,3 +168,5 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
+
+    

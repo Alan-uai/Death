@@ -2,61 +2,29 @@
 'use server';
 
 import { cache } from 'react';
-import {
-  answerGameQuestions,
-  type AnswerGameQuestionsInput,
-} from '@/ai/flows/answer-game-questions';
-import { getBotStatus } from '@/ai/flows/get-bot-status';
-import { getGuildChannels as getGuildChannelsFlow } from '@/ai/flows/get-guild-channels';
-import {
-  manageSuggestionChannel,
-  type ManageSuggestionChannelInput,
-  type ManageSuggestionChannelOutput,
-} from '@/ai/flows/manage-suggestion-channel';
-import { 
-  manageReportChannel,
-  type ManageReportChannelInput,
-  type ManageReportChannelOutput,
-} from '@/ai/flows/manage-report-channel';
-import { getBotGuilds, type DiscordGuild } from '@/services/discord';
-import type { DiscordChannel } from '@/services/discord';
 import { db } from '@/lib/firebase-admin';
+import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import { 
     getCustomCommand,
     saveCustomCommand,
     type CustomCommand
 } from '@/ai/flows/manage-custom-commands';
 
-export async function askQuestionAction(
-  input: AnswerGameQuestionsInput
-): Promise<string> {
-  try {
-    const result = await answerGameQuestions(input);
-    return result.answer;
-  } catch (error) {
-    console.error('Erro na ação askQuestionAction:', error);
-    return 'Ocorreu um erro ao buscar uma resposta. Por favor, tente novamente.';
-  }
-}
+const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
-export async function getBotStatusAction(): Promise<string> {
-  try {
-    const result = await getBotStatus();
-    return result.status;
-  } catch (error) {
-    console.error('Erro ao obter o status do bot:', error);
-    return 'Offline';
-  }
-}
 
 export const getGuildChannelsAction = cache(async (
   guildId: string
 ): Promise<DiscordChannel[]> => {
   try {
     if (!db) {
-      console.warn('[Firestore] DB não inicializado. Pulando a busca de canais no cache e buscando na API.');
-      const { channels } = await getGuildChannelsFlow({ guildId });
-      return channels;
+      console.warn('[Firestore] DB não inicializado. Buscando na API.');
+      const response = await fetch(`${DISCORD_API_BASE_URL}/guilds/${guildId}/channels`, {
+        headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+      });
+      if (!response.ok) return [];
+      const channels = await response.json();
+      return channels as DiscordChannel[];
     }
 
     const guildDocRef = db.collection('servers').doc(guildId);
@@ -71,7 +39,16 @@ export const getGuildChannelsAction = cache(async (
     }
     
     console.log(`[Discord API] Canais para o servidor ${guildId} não encontrados no cache do Firestore. Buscando na API.`);
-    const { channels } = await getGuildChannelsFlow({ guildId });
+    const response = await fetch(`${DISCORD_API_BASE_URL}/guilds/${guildId}/channels`, {
+        headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+    });
+    
+    if (!response.ok) {
+        console.error(`Erro ao buscar canais para o servidor ${guildId} na API do Discord. Status: ${response.status}`);
+        return [];
+    }
+
+    const channels = await response.json() as DiscordChannel[];
 
     if (channels.length > 0) {
         console.log(`[Firestore] Salvando ${channels.length} canais buscados para o servidor ${guildId} no cache.`);
@@ -93,45 +70,25 @@ export const getGuildChannelsAction = cache(async (
 
 export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     try {
-        const guilds = await getBotGuilds();
-        return guilds;
+        if (!process.env.DISCORD_BOT_TOKEN) {
+            throw new Error('Server configuration error: DISCORD_BOT_TOKEN is not set.');
+        }
+
+        const response = await fetch(`${DISCORD_API_BASE_URL}/users/@me/guilds`, {
+             headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch from Discord API. Status: ${response.status}`);
+        }
+
+        const guilds = await response.json();
+        return guilds as DiscordGuild[];
+
     } catch (error) {
         console.error('Erro ao obter servidores do bot:', error);
         return [];
     }
-}
-
-export async function manageSuggestionChannelAction(
-  input: ManageSuggestionChannelInput
-): Promise<ManageSuggestionChannelOutput> {
-  try {
-    const result = await manageSuggestionChannel(input);
-    return result;
-  } catch (error) {
-    console.error('Erro na ação manageSuggestionChannelAction:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-    return {
-      success: false,
-      message: `Falha ao gerenciar canal de sugestões: ${errorMessage}`,
-    };
-  }
-}
-
-export async function manageReportChannelAction(
-  input: ManageReportChannelInput
-): Promise<ManageReportChannelOutput> {
-  try {
-    const result = await manageReportChannel(input);
-    return result;
-  } catch (error)
- {
-    console.error('Erro na ação manageReportChannelAction:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro desconhecido.';
-    return {
-      success: false,
-      message: `Falha ao gerenciar canal de denúncias: ${errorMessage}`,
-    };
-  }
 }
 
 export const getCustomCommandAction = cache(async (
@@ -163,3 +120,5 @@ export async function saveCustomCommandAction(
     };
   }
 }
+
+    

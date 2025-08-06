@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getBotGuildsAction } from '@/app/actions';
-import type { DiscordGuild } from '@/services/discord';
+import type { DiscordGuild } from '@/lib/types';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 
@@ -49,14 +49,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const checkPendingInvite = () => {
+    const checkPendingInvite = async () => {
         const pendingGuildId = localStorage.getItem('pending_guild_id');
-        if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
-          localStorage.removeItem('pending_guild_id');
-          setShowInviteMessage(false);
-          const guild = guilds.find(g => g.id === pendingGuildId);
-          if (guild) {
-            handleSelect(guild);
+        if (pendingGuildId) {
+          const currentBotGuilds = await getBotGuildsAction();
+          const currentBotGuildIds = currentBotGuilds.map(g => g.id);
+          setBotGuilds(currentBotGuildIds);
+
+          if (currentBotGuildIds.includes(pendingGuildId)) {
+            localStorage.removeItem('pending_guild_id');
+            setShowInviteMessage(false);
+            const guild = guilds.find(g => g.id === pendingGuildId);
+            if (guild) {
+              handleSelect(guild);
+            }
           }
         }
     };
@@ -103,27 +109,17 @@ export default function Home() {
         setIsLoading(false);
     }
     
-    // Check for pending invite after bot guilds are fetched
-    if (botGuilds.length > 0) {
-        checkPendingInvite();
-    }
-
-    // Also set up an interval to check for a short period
     const interval = setInterval(() => {
-      if (localStorage.getItem('pending_guild_id')) {
-        getBotGuildsAction().then(botGuildsResponse => {
-           const botGuildIds = botGuildsResponse.map(g => g.id);
-           setBotGuilds(botGuildIds);
-           checkPendingInvite();
-        });
-      } else {
-        clearInterval(interval);
-      }
-    }, 3000); // Check every 3 seconds
+        if (localStorage.getItem('pending_guild_id')) {
+            checkPendingInvite();
+        } else {
+            clearInterval(interval);
+        }
+    }, 5000);
 
     return () => clearInterval(interval);
 
-  }, [isLoggedIn, selectedGuild, guilds, botGuilds]);
+  }, [isLoggedIn, selectedGuild, guilds]);
 
   const handleLogin = () => {
     if (oauthUrl) {
@@ -257,3 +253,5 @@ export default function Home() {
       </main>
   );
 }
+
+    

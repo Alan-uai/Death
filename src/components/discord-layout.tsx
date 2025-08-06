@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bot, Cog, MessageSquare, Plus, Users, BarChart, Menu, Landmark } from 'lucide-react';
+import { ArrowLeft, Bot, Cog, MessageSquare, Users, BarChart, Menu, Landmark } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -11,8 +11,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getBotStatusAction, getGuildChannelsAction } from '@/app/actions';
-import type { DiscordChannel, DiscordGuild } from '@/services/discord';
+import { getGuildChannelsAction } from '@/app/actions';
+import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { SettingsPanel } from './settings-panel';
 import { CustomCommandsPanel } from './custom-commands-panel';
@@ -49,17 +49,10 @@ const navItems = [
 export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
-  const [botStatus, setBotStatus] = useState('Conectando...');
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      const status = await getBotStatusAction();
-      setBotStatus(status);
-    };
-    fetchStatus();
-
     const fetchChannels = async () => {
       if (!guild.id) return;
       const allChannels = await getGuildChannelsAction(guild.id);
@@ -156,3 +149,5 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
     </TooltipProvider>
   );
 }
+
+    

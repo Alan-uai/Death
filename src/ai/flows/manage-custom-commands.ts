@@ -42,9 +42,7 @@ export const saveCustomCommand = ai.defineFlow(
       throw new Error('Firestore não está inicializado. Verifique as configurações do Firebase Admin.');
     }
     
-    // For new commands, the ID might be different from the command name.
-    // For existing commands, the ID is fixed (e.g., 'q-and-a').
-    await customCommandsCollection.doc(command.id).set(command);
+    await customCommandsCollection.doc(command.id).set(command, { merge: true });
   }
 );
 
@@ -69,3 +67,5 @@ export const getCustomCommand = ai.defineFlow(
     }
   }
 );
+
+    

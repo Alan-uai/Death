@@ -4,10 +4,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChatMessage, type Message } from '@/components/chat-message';
 import { ChatInput } from '@/components/chat-input';
-import { askQuestionAction } from '@/app/actions';
 import { Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DiscordChannel } from '@/services/discord';
+import type { DiscordChannel } from '@/lib/types';
 
 interface ChatPanelProps {
   channels: DiscordChannel[];
@@ -19,23 +18,23 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
     username: 'Death',
     embed: {
       title: 'Bem-vindo ao Simulador de Chat!',
-      description: 'Selecione um canal à esquerda para começar a simular conversas. O bot responderá com base nas suas configurações atuais.',
+      description: 'Selecione um canal à esquerda para simular conversas. As respostas do bot são baseadas nas configurações salvas no Firestore. A execução real acontece no seu cliente de bot separado.',
     },
   },
   'q-and-a': {
     author: 'bot',
     username: 'Death',
-    text: 'Este é o canal de Perguntas e Respostas. Pergunte-me qualquer coisa sobre o jogo me mencionando com @.',
+    text: 'Este é o canal de Perguntas e Respostas. O bot responderá a menções aqui, com base nas configurações que você definir.',
   },
   'suggestions': {
     author: 'bot',
     username: 'Death',
-    text: 'Este é o canal de sugestões. Crie um novo post para compartilhar sua ideia com a comunidade!',
+    text: 'Este é o canal de sugestões. O bot reagirá a novas postagens aqui.',
   },
    'reports': {
     author: 'bot',
     username: 'Death',
-    text: 'Este é o canal de denúncias. Use o comando /denunciar em qualquer canal para abrir um tópico privado aqui.',
+    text: 'Este é o canal de denúncias. O bot criará tópicos privados para denúncias iniciadas aqui.',
   },
 };
 
@@ -98,29 +97,18 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    const [command, ...args] = input.trim().split(' ');
-    const restOfInput = args.join(' ');
-    let botResponse: Message | null = null;
-    const responseId = (Date.now() + 1).toString();
-    const responseTimestamp = getTimestamp();
-
-    if (command.startsWith('@Death')) {
-      const answer = await askQuestionAction({ question: restOfInput });
-      botResponse = {
-        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-        embed: { title: `Resposta para: ${restOfInput}`, description: answer },
-      };
-    } else {
-        botResponse = {
-            id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-            text: `O comando \`${command}\` não foi reconhecido. Os comandos disponíveis são configuráveis no painel de Comandos Customizados.`,
+    // Simulate bot thinking
+    setTimeout(() => {
+        const botResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            author: 'bot',
+            username: 'Death',
+            timestamp: getTimestamp(),
+            text: `Simulação: O bot processaria a mensagem "${input}" no canal #${activeChannel.name}. A lógica real é executada pelo seu bot separado, que lê as configurações do Firestore.`,
         };
-    }
-    
-    if (botResponse) {
-      setMessages((prev) => [...prev, botResponse!]);
-    }
-    setIsLoading(false);
+        setMessages((prev) => [...prev, botResponse]);
+        setIsLoading(false);
+    }, 1500);
   };
 
   return (
@@ -178,3 +166,5 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     </div>
   );
 }
+
+    
