@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -33,7 +33,7 @@ const commandOptions = [
 const PANEL_ID = 'customCommands';
 
 export function CustomCommandsPanel({ guildId }: { guildId: string }) {
-  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
+  const { registerPanel, getInitialData } = useSettings();
   const [selectedCommandId, setSelectedCommandId] = useState<string>('q-and-a');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,24 +51,18 @@ export function CustomCommandsPanel({ guildId }: { guildId: string }) {
     },
   });
 
-  const checkIsDirty = () => {
-      if (methods.formState.isDirty) {
-          markAsDirty(PANEL_ID);
-          return true;
-      }
-      markAsClean(PANEL_ID);
-      return false;
-  }
+  const isDirty = useCallback(() => {
+      return methods.formState.isDirty;
+  }, [methods.formState.isDirty]);
+
+  const onSave = useCallback(() => {
+      const values = methods.getValues();
+      return saveCommandConfig(guildId, values);
+  }, [methods, guildId]);
 
   useEffect(() => {
-    registerPanel(PANEL_ID, {
-        onSave: () => {
-            const values = methods.getValues();
-            return saveCommandConfig(guildId, values);
-        },
-        isDirty: checkIsDirty,
-    });
-  }, [registerPanel, methods]);
+    registerPanel(PANEL_ID, { onSave, isDirty });
+  }, [registerPanel, onSave, isDirty]);
 
   useEffect(() => {
     const fetchCommandData = async () => {

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -14,7 +14,7 @@ type ManagementMode = 'slash' | 'channels' | 'both';
 const PANEL_ID = 'channelManagement';
 
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
-  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
+  const { registerPanel, getInitialData } = useSettings();
 
   const initialSettings = getInitialData<{
       mode: ManagementMode;
@@ -30,26 +30,25 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const [enableSuggestions, setEnableSuggestions] = useState(initialSettings.suggestions.enabled);
   const [enableReports, setEnableReports] = useState(initialSettings.reports.enabled);
 
-  const checkIsDirty = () => {
-    const dirty = (
+  const isDirty = useCallback(() => {
+    return (
       mode !== initialSettings.mode ||
       enableSuggestions !== initialSettings.suggestions.enabled ||
       enableReports !== initialSettings.reports.enabled
     );
-    if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
-    return dirty;
-  };
+  }, [mode, enableSuggestions, enableReports, initialSettings]);
   
-  useEffect(() => {
-    registerPanel(PANEL_ID, {
-        onSave: () => saveChannelConfig(guildId, {
-            mode,
-            suggestions: { enabled: enableSuggestions },
-            reports: { enabled: enableReports }
-        }),
-        isDirty: checkIsDirty,
+  const onSave = useCallback(() => {
+    return saveChannelConfig(guildId, {
+        mode,
+        suggestions: { enabled: enableSuggestions },
+        reports: { enabled: enableReports }
     });
-  }, [registerPanel, mode, enableSuggestions, enableReports, initialSettings]);
+  }, [guildId, mode, enableSuggestions, enableReports]);
+
+  useEffect(() => {
+    registerPanel(PANEL_ID, { onSave, isDirty });
+  }, [registerPanel, onSave, isDirty]);
   
   const showChannels = mode === 'channels' || mode === 'both';
   const showSlashInfo = mode === 'slash' || mode === 'both';

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { DiscordChannel } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ interface SettingsPanelProps {
 const PANEL_ID = 'genericSettings';
 
 export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
-  const { markAsDirty, registerPanel, getInitialData, markAsClean } = useSettings();
+  const { registerPanel, getInitialData } = useSettings();
   
   const initialSettings = getInitialData<{
     qaChannel: string;
@@ -32,18 +32,17 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   
   const textChannels = channels.filter(c => c.type === 0);
 
-  const checkIsDirty = () => {
-    const dirty = qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
-    if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
-    return dirty;
-  };
+  const isDirty = useCallback(() => {
+    return qaChannel !== initialSettings.qaChannel || buildsChannel !== initialSettings.buildsChannel;
+  }, [qaChannel, buildsChannel, initialSettings]);
+
+  const onSave = useCallback(() => {
+    return saveGenericConfig(guildId, { qaChannel, buildsChannel });
+  }, [guildId, qaChannel, buildsChannel]);
 
   useEffect(() => {
-    registerPanel(PANEL_ID, {
-        onSave: () => saveGenericConfig(guildId, { qaChannel, buildsChannel }),
-        isDirty: checkIsDirty,
-    });
-  }, [registerPanel, qaChannel, buildsChannel, initialSettings]);
+    registerPanel(PANEL_ID, { onSave, isDirty });
+  }, [registerPanel, onSave, isDirty]);
 
 
   return (

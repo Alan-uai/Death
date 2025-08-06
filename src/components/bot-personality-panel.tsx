@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -26,7 +25,7 @@ const personalityPrompts: Record<Personality, string> = {
 };
 
 export function BotPersonalityPanel({ guildId }: { guildId: string }) {
-    const { registerPanel, getInitialData, isDirty, markAsDirty, markAsClean } = useSettings();
+    const { registerPanel, getInitialData } = useSettings();
 
     const initialSettings = getInitialData<{ personality: Personality; customPrompt: string }>(PANEL_ID) || {
         personality: 'amigavel',
@@ -36,21 +35,20 @@ export function BotPersonalityPanel({ guildId }: { guildId: string }) {
     const [personality, setPersonality] = useState<Personality>(initialSettings.personality);
     const [customPrompt, setCustomPrompt] = useState(initialSettings.customPrompt || personalityPrompts[personality]);
 
-    const checkIsDirty = () => {
-        const dirty = personality !== initialSettings.personality || customPrompt !== initialSettings.customPrompt;
-        if(dirty) markAsDirty(PANEL_ID); else markAsClean(PANEL_ID);
-        return dirty;
-    };
+    const isDirty = useCallback(() => {
+        return personality !== initialSettings.personality || customPrompt !== initialSettings.customPrompt;
+    }, [personality, customPrompt, initialSettings]);
+    
+    const onSave = useCallback(() => {
+        return saveGenericConfig(guildId, {
+            personality,
+            customPrompt
+        });
+    }, [guildId, personality, customPrompt]);
     
     useEffect(() => {
-        registerPanel(PANEL_ID, {
-            onSave: () => saveGenericConfig(guildId, {
-                personality,
-                customPrompt
-            }),
-            isDirty: checkIsDirty,
-        });
-    }, [registerPanel, personality, customPrompt, initialSettings]);
+        registerPanel(PANEL_ID, { onSave, isDirty });
+    }, [registerPanel, onSave, isDirty]);
 
 
     const handlePersonalityChange = (newPersonality: Personality) => {

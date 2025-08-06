@@ -13,8 +13,6 @@ interface SettingsContextType {
   isSaving: boolean;
   isDirty: boolean;
   getInitialData: <T>(panelId: string) => T | undefined;
-  markAsDirty: (panelId: string) => void;
-  markAsClean: (panelId: string) => void;
   saveChanges: (guildId: string) => Promise<void>;
   discardChanges: () => void;
   registerPanel: (panelId: string, registration: PanelRegistration) => void;
@@ -24,42 +22,22 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [initialData, setInitialData] = useState<Record<string, any>>({});
-  const [dirtyPanels, setDirtyPanels] = useState<Set<string>>(new Set());
   const [panelRegistrations, setPanelRegistrations] = useState<Record<string, PanelRegistration>>({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const isDirty = useMemo(() => {
-    return Array.from(dirtyPanels).length > 0;
-  }, [dirtyPanels]);
+    return Object.values(panelRegistrations).some(panel => panel.isDirty());
+  }, [panelRegistrations]);
 
 
   const getInitialData = useCallback(<T,>(panelId: string): T | undefined => {
     return initialData[panelId] as T | undefined;
   }, [initialData]);
 
-  const markAsDirty = useCallback((panelId: string) => {
-    setDirtyPanels(prev => {
-        const newSet = new Set(prev);
-        newSet.add(panelId);
-        return newSet;
-    });
-  }, []);
-
-  const markAsClean = useCallback((panelId: string) => {
-    setDirtyPanels(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(panelId);
-        return newSet;
-    });
-  }, []);
-  
   const registerPanel = useCallback((panelId: string, registration: PanelRegistration) => {
     setPanelRegistrations(prev => ({...prev, [panelId]: registration}));
-    if (registration.isDirty()) {
-        markAsDirty(panelId);
-    }
-  }, [markAsDirty]);
+  }, []);
 
   const discardChanges = useCallback(() => {
     window.location.reload();
@@ -68,9 +46,9 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const saveChanges = async (guildId: string) => {
     setIsSaving(true);
     
-    const panelsToSave = Object.entries(panelRegistrations).filter(([panelId, panel]) => panel.isDirty());
+    const panelsToSave = Object.entries(panelRegistrations).filter(([_, panel]) => panel.isDirty());
 
-    const promises = panelsToSave.map(([panelId, panel]) => {
+    const promises = panelsToSave.map(([_, panel]) => {
       if (panel.onSave) {
         return panel.onSave();
       }
@@ -100,8 +78,6 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     isSaving,
     isDirty,
     getInitialData,
-    markAsDirty,
-    markAsClean,
     saveChanges,
     discardChanges,
     registerPanel,
