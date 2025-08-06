@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getBotGuildsAction, registerCommandsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/services/discord';
@@ -99,6 +99,14 @@ export default function Home() {
     if (oauthUrl) {
       window.location.href = oauthUrl;
     }
+  };
+  
+  const handleLogout = () => {
+    localStorage.removeItem('discord_access_token');
+    localStorage.removeItem('selected_guild');
+    setIsLoggedIn(false);
+    setGuilds([]);
+    setSelectedGuild(null);
   };
   
   const handleInvite = (guild: DiscordGuild) => {
@@ -233,6 +241,9 @@ export default function Home() {
                       )}
                   </div>
               </CardContent>
+               <CardFooter className="flex justify-end pt-4">
+                  <Button variant="destructive" onClick={handleLogout}>Logout</Button>
+              </CardFooter>
           </Card>
       </main>
   );
