@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -6,16 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { saveCustomCommandAction } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
+import { saveChannelConfig } from '@/lib/bot-api';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
 
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const { toast } = useToast();
-  // NOTE: This state is for UI demonstration only.
-  // The bot will read the configuration from Firestore.
   const [mode, setMode] = useState<ManagementMode>('slash');
   const [enableSuggestions, setEnableSuggestions] = useState(false);
   const [enableReports, setEnableReports] = useState(false);
@@ -26,43 +23,27 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     enabled: boolean
   ) => {
     setProcessing(feature);
-
-    const commandId = feature === 'suggestions' ? 'config-suggestions' : 'config-reports';
-    const name = feature === 'suggestions' ? 'Configuração de Sugestões' : 'Configuração de Denúncias';
     
     try {
-      await saveCustomCommandAction({
-        id: commandId,
-        name: name,
-        description: `Configuração para o módulo de ${feature}.`,
-        responseType: 'container', // Using 'container' to store simple boolean
-        response: {
-          container: JSON.stringify({
-            guildId,
-            enabled,
-            mode // Save the current mode as well
-          })
-        }
+      await saveChannelConfig(guildId, {
+        type: feature,
+        enabled,
+        mode,
       });
 
-      if (enabled) {
-        if (feature === 'suggestions') setEnableSuggestions(true);
-        if (feature === 'reports') setEnableReports(true);
-      } else {
-        if (feature === 'suggestions') setEnableSuggestions(false);
-        if (feature === 'reports') setEnableReports(false);
-      }
+      if (feature === 'suggestions') setEnableSuggestions(enabled);
+      if (feature === 'reports') setEnableReports(enabled);
 
       toast({
-        title: 'Configuração Salva!',
-        description: `O módulo de ${feature} foi ${enabled ? 'ativado' : 'desativado'}. O bot aplicará a nova configuração em breve.`,
+        title: 'Configuração Enviada!',
+        description: `A configuração para ${feature} foi enviada ao bot. Ele aplicará as mudanças em breve.`,
       });
     } catch (error) {
-      console.error(`Falha ao salvar configuração de ${feature}:`, error);
+      console.error(`Falha ao enviar configuração de ${feature}:`, error);
       toast({
         variant: 'destructive',
-        title: 'Erro Inesperado',
-        description: 'Não foi possível salvar a configuração. Tente novamente.',
+        title: 'Erro de Comunicação',
+        description: 'Não foi possível enviar a configuração para o backend do bot. Verifique se ele está online.',
       });
     } finally {
       setProcessing(null);
@@ -78,7 +59,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor. As configurações são salvas e o bot as lerá para registrar comandos ou criar canais.
+            Escolha como o bot deve interagir com o servidor. As configurações são enviadas para o seu bot, que registrará comandos ou criará canais conforme definido.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -168,5 +149,3 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     </div>
   );
 }
-
-    

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -28,29 +27,28 @@ interface DiscordLayoutProps {
     onGoBack: () => void;
 }
 
-const panelComponents: Record<Panel, React.FC<any>> = {
-    chat: ChatPanel,
-    settings: SettingsPanel,
-    commands: CustomCommandsPanel,
-    channels: ChannelManagerPanel,
-    personality: BotPersonalityPanel,
-    analytics: AnalyticsPanel,
-};
-
-const navItems = [
-    { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
-    { id: 'settings', label: 'Configurações', icon: Cog },
-    { id: 'commands', label: 'Comandos Customizados', icon: Users },
-    { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
-    { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
-    { id: 'analytics', label: 'Analytics', icon: BarChart },
-];
-
 export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const [activePanel, setActivePanel] = useState<Panel>('chat');
   const [channels, setChannels] = useState<DiscordChannel[]>([]);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  const panelComponents: Record<Panel, React.FC<any>> = {
+    chat: ChatPanel,
+    settings: SettingsPanel,
+    commands: (props) => <CustomCommandsPanel {...props} guildId={guild.id} />,
+    channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
+    personality: BotPersonalityPanel,
+    analytics: AnalyticsPanel,
+  };
+
+  const navItems = [
+      { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
+      { id: 'settings', label: 'Configurações', icon: Cog },
+      { id: 'commands', label: 'Comandos Customizados', icon: Users },
+      { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
+      { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
+      { id: 'analytics', label: 'Analytics', icon: BarChart },
+  ];
 
   useEffect(() => {
     const fetchChannels = async () => {
@@ -149,5 +147,3 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
     </TooltipProvider>
   );
 }
-
-    

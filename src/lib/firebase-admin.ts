@@ -3,6 +3,7 @@ import * as admin from 'firebase-admin';
 let db: admin.firestore.Firestore | undefined;
 
 function initializeFirebaseAdmin() {
+  // Avoid re-initializing in a hot-reload environment
   if (admin.apps.length) {
     if (!db) {
         db = admin.firestore();
@@ -14,6 +15,7 @@ function initializeFirebaseAdmin() {
     const serviceAccountString = process.env.FIREBASE_SERVICE_ACCOUNT;
     
     if (serviceAccountString) {
+      // Parse the string into an object
       const serviceAccount = JSON.parse(serviceAccountString);
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
@@ -22,6 +24,7 @@ function initializeFirebaseAdmin() {
       console.log('Firebase Admin SDK initialized successfully.');
       db = admin.firestore();
     } else {
+        // This is a warning, not an error, as the Admin SDK might not be needed in all environments (e.g., client-side only).
         console.warn('FIREBASE_SERVICE_ACCOUNT environment variable is not set. Firebase Admin SDK not initialized.');
     }
   } catch (error) {

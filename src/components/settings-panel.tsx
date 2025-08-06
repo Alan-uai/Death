@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { saveCustomCommandAction } from '@/app/actions';
+import { saveGenericConfig } from '@/lib/bot-api';
 
 interface SettingsPanelProps {
   channels: DiscordChannel[];
@@ -24,7 +23,8 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   const textChannels = channels.filter(c => c.type === 0);
 
   useEffect(() => {
-    // In a real app, you would fetch these settings from Firestore
+    // In a real app, you would fetch these settings from your bot's backend
+    // For now, we use localStorage for demonstration
     const savedQaChannel = localStorage.getItem(`settings_qaChannel_${guildId}`) || 'any';
     const savedBuildsChannel = localStorage.getItem(`settings_buildsChannel_${guildId}`) || 'any';
     setQaChannel(savedQaChannel);
@@ -34,32 +34,22 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Save settings to Firestore via a 'custom command' for simplicity
     const settingsPayload = {
-      id: `settings-${guildId}`,
-      name: `Configurações para ${guildId}`,
-      description: 'Configurações gerais do bot para este servidor.',
-      responseType: 'container',
-      response: {
-        container: JSON.stringify({
-          qaChannel: qaChannel,
-          buildsChannel: buildsChannel,
-        })
-      }
+        qaChannel: qaChannel,
+        buildsChannel: buildsChannel,
     };
 
-    const result = await saveCustomCommandAction(settingsPayload);
-    
-    if (result.success) {
-      toast({
-        title: "Configurações Salvas",
-        description: "Suas novas configurações foram salvas no Firestore. O bot as usará em breve.",
-      });
-    } else {
+    try {
+        await saveGenericConfig(guildId, settingsPayload);
+        toast({
+            title: "Configurações Enviadas",
+            description: "Suas novas configurações foram enviadas para o bot.",
+        });
+    } catch (error) {
        toast({
         variant: 'destructive',
         title: "Erro ao Salvar",
-        description: result.message,
+        description: "Não foi possível enviar as configurações para o bot.",
       });
     }
 
@@ -76,7 +66,7 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
         <CardHeader>
           <CardTitle>Configuração do Bot</CardTitle>
           <CardDescription>
-            Configure onde as funcionalidades do bot estão ativas. As configurações são salvas no Firestore para o bot ler.
+            Configure onde as funcionalidades do bot estão ativas. As configurações são enviadas para o seu bot.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -133,5 +123,3 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
     </div>
   );
 }
-
-    

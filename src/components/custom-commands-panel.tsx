@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useForm, FormProvider, useFormContext } from 'react-hook-form';
+import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,8 +12,9 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { getCustomCommandAction, saveCustomCommandAction } from '@/app/actions';
-import { type CustomCommand } from '@/ai/flows/manage-custom-commands';
+import { getCustomCommandAction } from '@/app/actions';
+import { saveCommandConfig } from '@/lib/bot-api';
+import { type CustomCommand } from '@/lib/types';
 import { Loader2, Save } from 'lucide-react';
 import {
   Select,
@@ -44,7 +44,7 @@ const commandOptions = [
     { id: 'novo-comando', name: 'Criar Novo Comando' },
 ];
 
-export function CustomCommandsPanel() {
+export function CustomCommandsPanel({ guildId }: { guildId: string }) {
   const { toast } = useToast();
   const [selectedCommandId, setSelectedCommandId] = useState<string>('q-and-a');
   const [isSaving, setIsSaving] = useState(false);
@@ -99,17 +99,17 @@ export function CustomCommandsPanel() {
   
   const onSubmit = async (data: CustomCommand) => {
     setIsSaving(true);
-    const result = await saveCustomCommandAction(data);
-    if (result.success) {
+    try {
+      await saveCommandConfig(guildId, data);
       toast({
         title: 'Sucesso!',
-        description: result.message,
+        description: "Configuração do comando enviada para o bot.",
       });
-    } else {
+    } catch (error) {
       toast({
         variant: 'destructive',
         title: 'Erro!',
-        description: result.message,
+        description: "Falha ao enviar configuração para o bot. Verifique se ele está online.",
       });
     }
     setIsSaving(false);
@@ -123,7 +123,7 @@ export function CustomCommandsPanel() {
         <CardHeader>
           <CardTitle>Comandos e Respostas</CardTitle>
           <CardDescription>
-            Crie novos comandos ou personalize as respostas dos comandos existentes.
+            Crie novos comandos ou personalize as respostas dos comandos existentes. As configurações são enviadas para o backend do seu bot.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -216,7 +216,7 @@ export function CustomCommandsPanel() {
                     </div>
                   )}
                    <p className="text-xs text-muted-foreground">
-                        Você pode usar variáveis como `{"{{question}}"}`, `{"{{answer}}"}`, ou `{"{{user}}"}`, que serão substituídas na resposta.
+                        Você pode usar variáveis como `{"{{question}}"}`, `{"{{answer}}"}`, ou `{"{{user}}"}`, que serão substituídas na resposta do bot.
                     </p>
                 </div>
               )}
@@ -224,7 +224,7 @@ export function CustomCommandsPanel() {
               <div className="flex justify-end">
                 <Button type="submit" disabled={isSaving || isLoading}>
                   {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
-                  Salvar Alterações
+                  Salvar e Enviar para o Bot
                 </Button>
               </div>
             </form>
