@@ -24,7 +24,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
     <div className="group relative flex items-start space-x-4">
       <UserAvatar
         username={username}
-        className={cn(isBot ? "border-primary" : "border-secondary")}
       />
       <div className="flex-1">
         <div className="flex items-baseline space-x-2">

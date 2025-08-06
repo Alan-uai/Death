@@ -114,7 +114,7 @@ export function ChatPanel({ channels }: ChatPanelProps) {
   return (
     <div className="flex h-full flex-col md:flex-row">
       {/* Channel List */}
-      <div className="w-full md:w-60 flex-shrink-0 bg-[#2f3136] p-2">
+      <div className="w-full md:w-60 flex-shrink-0 bg-card p-2">
         <h3 className="px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Canais</h3>
         <div className="mt-2 space-y-1">
           {textAndForumChannels.map((channel) => (
@@ -122,8 +122,8 @@ export function ChatPanel({ channels }: ChatPanelProps) {
               key={channel.id}
               onClick={() => setActiveChannel(channel)}
               className={cn(
-                'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-[#36393f] hover:text-white',
-                activeChannel?.id === channel.id && 'bg-[#40444b] text-white'
+                'group flex w-full items-center rounded-md px-2 py-1 transition-colors hover:bg-secondary hover:text-white',
+                activeChannel?.id === channel.id && 'bg-secondary text-white'
               )}
             >
               <Hash className="mr-2 h-5 w-5 text-gray-400" />
@@ -137,8 +137,8 @@ export function ChatPanel({ channels }: ChatPanelProps) {
       </div>
       
       {/* Chat Area */}
-      <div className="flex flex-1 flex-col overflow-hidden bg-[#36393f]">
-        <div className="flex h-12 items-center border-b border-black/20 px-4 shadow-md">
+      <div className="flex flex-1 flex-col overflow-hidden bg-background">
+        <div className="flex h-12 items-center border-b border-border px-4 shadow-md">
           <Hash className="h-6 w-6 text-gray-400" />
           <span className="ml-2 font-semibold text-white">{activeChannel?.name || 'Selecione um canal'}</span>
         </div>
@@ -166,5 +166,3 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     </div>
   );
 }
-
-    

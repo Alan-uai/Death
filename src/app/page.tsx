@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getBotGuildsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/lib/types';
+import { cn } from '@/lib/utils';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 const BOT_API_BASE_URL = process.env.NEXT_PUBLIC_BOT_API_URL || 'https://teubot.onrender.com';
@@ -162,14 +163,14 @@ export default function Home() {
 
   if (isLoading) {
     return (
-         <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
-            <Card className="w-full max-w-md bg-[#2f3136] text-white shadow-2xl border-none">
+         <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
+            <Card className="w-full max-w-md bg-card text-card-foreground shadow-2xl border-border">
                 <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary animate-pulse">
-                       <DiscordLogoIcon className="h-12 w-12 text-white" />
+                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/20 animate-pulse">
+                       <DiscordLogoIcon className="h-12 w-12 text-primary" />
                     </div>
                     <CardTitle className="text-2xl font-bold">Carregando seus servidores...</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-muted-foreground">
                         Por favor, aguarde enquanto buscamos suas informações.
                     </CardDescription>
                 </CardHeader>
@@ -180,14 +181,17 @@ export default function Home() {
 
   if (!isLoggedIn) {
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
-            <Card className="w-full max-w-md bg-[#2f3136] text-white shadow-2xl border-none">
+        <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
+            <Card className="w-full max-w-md bg-card text-card-foreground shadow-2xl border-border">
                 <CardHeader className="text-center">
-                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary">
-                       <DiscordLogoIcon className="h-12 w-12 text-white" />
+                    <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                       <DiscordLogoIcon className={cn(
+                        "h-12 w-12",
+                        "bg-gradient-to-r from-primary to-accent text-transparent bg-clip-text"
+                       )} />
                     </div>
                     <CardTitle className="text-2xl font-bold">Configure seu Bot do Discord</CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-muted-foreground">
                         Faça login com sua conta do Discord para selecionar um servidor e configurar o bot.
                     </CardDescription>
                 </CardHeader>
@@ -202,11 +206,11 @@ export default function Home() {
   }
 
   return (
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[#36393f] p-8">
-          <Card className="w-full max-w-lg bg-[#2f3136] text-white shadow-2xl border-none">
+      <main className="flex min-h-screen flex-col items-center justify-center bg-background p-8">
+          <Card className="w-full max-w-lg bg-card text-card-foreground shadow-2xl border-border">
               <CardHeader>
                   <CardTitle>Selecione um Servidor</CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardDescription className="text-muted-foreground">
                       {showInviteMessage 
                         ? 'Após adicionar o bot, esta página será atualizada automaticamente.'
                         : "Escolha um servidor para convidar o bot, ou selecione um onde ele já está presente."
@@ -219,7 +223,7 @@ export default function Home() {
                           guilds.map(guild => {
                             const isBotMember = botGuilds.includes(guild.id);
                             return (
-                              <div key={guild.id} className="flex items-center justify-between rounded-lg bg-[#36393f] p-3">
+                              <div key={guild.id} className="flex items-center justify-between rounded-lg bg-secondary p-3">
                                   <div className="flex items-center space-x-3">
                                       {guild.icon ? (
                                         <img src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`} alt={guild.name} className="h-10 w-10 rounded-full" />

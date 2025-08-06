@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -91,10 +92,10 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen w-full bg-[#36393f] text-sm text-white">
+      <div className="flex h-screen w-full bg-background text-sm text-foreground">
         {/* Main Content Area */}
         <div className="flex flex-1 flex-col">
-          <header className="flex h-12 flex-shrink-0 items-center border-b border-black/20 px-4 shadow-md">
+          <header className="flex h-12 flex-shrink-0 items-center border-b border-border px-4 shadow-md">
               <div className="flex items-center">
                 <div className="md:hidden mr-2">
                    <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
@@ -103,7 +104,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
                         <Menu className="h-6 w-6" />
                       </Button>
                     </SheetTrigger>
-                    <SheetContent side="left" className="w-[240px] bg-[#2f3136] border-r border-black/20 p-0 pt-4">
+                    <SheetContent side="left" className="w-[240px] bg-card border-r border-border p-0 pt-4">
                       {renderNav()}
                     </SheetContent>
                   </Sheet>
@@ -133,12 +134,12 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
 
           <div className="flex flex-1 overflow-hidden">
             {/* Vertical Navigation Sidebar for Desktop */}
-            <div className="hidden md:block w-60 flex-shrink-0 border-r border-black/20 bg-[#2f3136]">
+            <div className="hidden md:block w-60 flex-shrink-0 border-r border-border bg-card">
               {renderNav()}
             </div>
             
             {/* Panel Content */}
-            <main className="flex-1 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto bg-secondary/30">
               <ActivePanelComponent channels={channels} guildId={guild.id} />
             </main>
           </div>
