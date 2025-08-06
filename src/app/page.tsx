@@ -6,7 +6,7 @@ import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
-import { getBotGuildsAction, registerCommandsAction } from '@/app/actions';
+import { getBotGuildsAction } from '@/app/actions';
 import type { DiscordGuild } from '@/services/discord';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
@@ -49,6 +49,18 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    const checkPendingInvite = () => {
+        const pendingGuildId = localStorage.getItem('pending_guild_id');
+        if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
+          localStorage.removeItem('pending_guild_id');
+          setShowInviteMessage(false);
+          const guild = guilds.find(g => g.id === pendingGuildId);
+          if (guild) {
+            handleSelect(guild);
+          }
+        }
+    };
+
     if (isLoggedIn && !selectedGuild) {
       const fetchInitialData = async () => {
         setIsLoading(true);
@@ -80,7 +92,6 @@ export default function Home() {
           
           const botGuildIds = botGuildsResponse.map(g => g.id);
           setBotGuilds(botGuildIds);
-
         } catch (error) {
           console.error('Erro ao buscar dados iniciais:', error);
         } finally {
@@ -91,7 +102,28 @@ export default function Home() {
     } else if(!isLoggedIn) {
         setIsLoading(false);
     }
-  }, [isLoggedIn, selectedGuild]);
+    
+    // Check for pending invite after bot guilds are fetched
+    if (botGuilds.length > 0) {
+        checkPendingInvite();
+    }
+
+    // Also set up an interval to check for a short period
+    const interval = setInterval(() => {
+      if (localStorage.getItem('pending_guild_id')) {
+        getBotGuildsAction().then(botGuildsResponse => {
+           const botGuildIds = botGuildsResponse.map(g => g.id);
+           setBotGuilds(botGuildIds);
+           checkPendingInvite();
+        });
+      } else {
+        clearInterval(interval);
+      }
+    }, 3000); // Check every 3 seconds
+
+    return () => clearInterval(interval);
+
+  }, [isLoggedIn, selectedGuild, guilds, botGuilds]);
 
   const handleLogin = () => {
     if (oauthUrl) {
@@ -120,26 +152,6 @@ export default function Home() {
     localStorage.setItem('selected_guild', JSON.stringify(guild));
     setSelectedGuild(guild);
   }
-  
-  useEffect(() => {
-    const pendingGuildId = localStorage.getItem('pending_guild_id');
-    if (pendingGuildId && botGuilds.includes(pendingGuildId)) {
-      localStorage.removeItem('pending_guild_id');
-      
-      registerCommandsAction(pendingGuildId).then(success => {
-        if (success) {
-          console.log(`Registro de comando acionado com sucesso para o servidor ${pendingGuildId}`);
-        } else {
-          console.error(`Falha ao acionar registro de comando para o servidor ${pendingGuildId}`);
-        }
-        const guild = guilds.find(g => g.id === pendingGuildId);
-        if (guild) {
-          handleSelect(guild);
-        }
-      });
-    }
-  }, [botGuilds, guilds]);
-
 
   const handleGoBack = () => {
     localStorage.removeItem('selected_guild');
@@ -199,7 +211,7 @@ export default function Home() {
                   <CardTitle>Selecione um Servidor</CardTitle>
                   <CardDescription className="text-gray-400">
                       {showInviteMessage 
-                        ? 'Após adicionar o bot, por favor, atualize esta página para continuar.'
+                        ? 'Após adicionar o bot, esta página será atualizada automaticamente.'
                         : "Escolha um servidor para convidar o bot, ou selecione um onde ele já está presente."
                       }
                   </CardDescription>

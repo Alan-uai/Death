@@ -1,37 +1,23 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { manageSuggestionChannelAction, manageReportChannelAction, registerCommandsAction } from '@/app/actions';
+import { manageSuggestionChannelAction, manageReportChannelAction } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
-type ManagementMode = 'channels' | 'slash' | 'both';
+type ManagementMode = 'slash' | 'channels' | 'both';
 
 export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const { toast } = useToast();
-  const [mode, setMode] = useState<ManagementMode>('channels');
+  const [mode, setMode] = useState<ManagementMode>('slash');
   const [enableSuggestions, setEnableSuggestions] = useState(false);
   const [enableReports, setEnableReports] = useState(false);
-  const [processing, setProcessing] = useState<'suggestions' | 'reports' | 'commands' | null>(null);
-
-  useEffect(() => {
-    const handleCommandRegistration = async () => {
-        if (mode === 'slash' || mode === 'both') {
-            setProcessing('commands');
-            await registerCommandsAction(guildId, true);
-            setProcessing(null);
-        } else {
-            await registerCommandsAction(guildId, false);
-        }
-    };
-    handleCommandRegistration();
-  }, [mode, guildId]);
-
+  const [processing, setProcessing] = useState<'suggestions' | 'reports' | null>(null);
 
   const handleToggleFeature = async (
     feature: 'suggestions' | 'reports', 
@@ -94,7 +80,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor: através de canais automatizados, comandos de barra (/) ou ambos.
+            Escolha como o bot deve interagir com o servidor: através de canais automatizados, comandos de barra (/) ou ambos. O registro dos comandos é feito automaticamente pelo bot.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -171,7 +157,7 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                 <div className="space-y-4 pt-4 border-t">
                     <h3 className="text-lg font-medium">Comandos de Barra (/)</h3>
                      <p className="text-sm text-muted-foreground">
-                        {processing === 'commands' ? 'Registrando comandos...' : 'Os seguintes comandos estão ativos no servidor:'}
+                        Os seguintes comandos de barra estão ativos no servidor:
                      </p>
                      <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
                         <li><code className="bg-muted p-1 rounded-sm">/denunciar</code> - Inicia o processo para criar uma denúncia privada.</li>

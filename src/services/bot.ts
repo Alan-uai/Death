@@ -19,9 +19,48 @@ import {
     TextInputBuilder,
     TextInputStyle,
     ChannelType,
-    EmbedBuilder
+    EmbedBuilder,
+    REST,
+    Routes
 } from 'discord.js';
-import { registerGuildCommands } from './discord-commands';
+import { getGuildChannels } from './discord';
+
+const commands = [
+  {
+    name: 'sugestao',
+    description: 'Guia o usuário para o canal de sugestões.',
+  },
+  {
+    name: 'denunciar',
+    description: 'Abre um formulário para criar uma denúncia privada.',
+  },
+];
+
+
+async function registerGuildCommands(guildId: string): Promise<void> {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  const clientId = process.env.DISCORD_CLIENT_ID;
+
+  if (!clientId || !token) {
+    throw new Error('Variáveis de ambiente DISCORD_CLIENT_ID ou DISCORD_BOT_TOKEN ausentes.');
+  }
+  
+  const rest = new REST({ version: '10' }).setToken(token);
+
+  try {
+    console.log(`Iniciando a inscrição de ${commands.length} comandos (/) de aplicação para o servidor ${guildId}.`);
+
+    await rest.put(
+      Routes.applicationGuildCommands(clientId, guildId),
+      { body: commands },
+    );
+
+    console.log(`Comandos de aplicação (/) foram recarregados com sucesso para o servidor ${guildId}.`);
+  } catch (error) {
+    console.error(`Falha ao registrar comandos para o servidor ${guildId}:`, error);
+  }
+}
+
 
 // Ensure necessary environment variables are set
 if (!process.env.DISCORD_BOT_TOKEN) {
@@ -33,14 +72,21 @@ if (!process.env.DISCORD_BOT_TOKEN) {
     const client = new Client({
       intents: [
         GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
       ],
     });
     
     /**
      * Event handler for when the client is ready.
      */
-    client.once(Events.ClientReady, (readyClient) => {
+    client.once(Events.ClientReady, async (readyClient) => {
       console.log(`Discord Bot is ready! Logged in as ${readyClient.user.tag}`);
+      // Register commands for all guilds the bot is in.
+      const guilds = await readyClient.guilds.fetch();
+      for (const [, guild] of guilds) {
+        await registerGuildCommands(guild.id);
+      }
     });
     
     /**
@@ -48,8 +94,30 @@ if (!process.env.DISCORD_BOT_TOKEN) {
      */
     client.on(Events.GuildCreate, async (guild) => {
       console.log(`Bot has been added to a new guild: ${guild.name} (ID: ${guild.id})`);
-      // We no longer register commands here, it's handled from the UI.
+      await registerGuildCommands(guild.id);
     });
+
+    /**
+     * Event handler for new messages.
+     */
+    client.on(Events.MessageCreate, async (message) => {
+        // If the message is in a suggestions channel, add reactions.
+        if (message.channel.type === ChannelType.GuildForum) {
+            const { channels } = await getGuildChannels(message.guildId!);
+            const suggestionChannel = channels.find(c => c.name.toLowerCase().includes('sugestoes'));
+            if (suggestionChannel && message.channel.id === suggestionChannel.id) {
+                 if (message.type === 20) { // THREAD_CREATED
+                    try {
+                        await message.react('👍');
+                        await message.react('👎');
+                    } catch (error) {
+                        console.error('Failed to add reactions to suggestion thread:', error);
+                    }
+                 }
+            }
+        }
+    });
+
 
     /**
      * Event handler for interactions (slash commands, buttons, modals).
@@ -60,10 +128,19 @@ if (!process.env.DISCORD_BOT_TOKEN) {
             if (interaction.commandName === 'denunciar') {
                 await handleOpenReportModal(interaction);
             } else if (interaction.commandName === 'sugestao') {
-                await interaction.reply({
-                    content: 'Para enviar uma sugestão, por favor, crie um novo post no canal de fórum #sugestoes!',
-                    ephemeral: true,
-                });
+                const { channels } = await getGuildChannels(interaction.guildId!);
+                const suggestionChannel = channels.find(c => c.name.toLowerCase().includes('sugestoes'));
+                if (suggestionChannel) {
+                    await interaction.reply({
+                        content: `Para enviar uma sugestão, por favor, crie um novo post no canal de fórum <#${suggestionChannel.id}>!`,
+                        ephemeral: true,
+                    });
+                } else {
+                     await interaction.reply({
+                        content: 'O canal de sugestões não está ativado neste servidor.',
+                        ephemeral: true,
+                    });
+                }
             }
         } else if (interaction.isButton()) {
             // Handle button clicks
@@ -121,8 +198,23 @@ if (!process.env.DISCORD_BOT_TOKEN) {
      * Handles the submission of the report modal.
      */
     async function handleReportModalSubmit(interaction: any) {
-        if (!interaction.channel || interaction.channel.type !== ChannelType.GuildText) {
-             await interaction.reply({ content: 'Este comando só pode ser usado em um canal de texto do servidor.', ephemeral: true });
+        if (!interaction.guild) {
+             await interaction.reply({ content: 'Ocorreu um erro. Servidor não encontrado.', ephemeral: true });
+             return;
+        }
+
+        const { channels } = await getGuildChannels(interaction.guildId);
+        let reportChannel = channels.find(c => c.name.toLowerCase().includes('denuncias'));
+
+        if (!reportChannel) {
+             await interaction.reply({ content: 'O canal de denúncias não está ativado neste servidor.', ephemeral: true });
+             return;
+        }
+
+        const channel = await client.channels.fetch(reportChannel.id);
+
+        if (!channel || channel.type !== ChannelType.GuildText) {
+             await interaction.reply({ content: 'O canal de denúncias configurado não é um canal de texto.', ephemeral: true });
              return;
         }
 
@@ -132,10 +224,9 @@ if (!process.env.DISCORD_BOT_TOKEN) {
         const user = interaction.user;
 
         try {
-             // Acknowledge the interaction first
             await interaction.deferReply({ ephemeral: true });
 
-            const thread = await interaction.channel.threads.create({
+            const thread = await channel.threads.create({
                 name: `Denúncia: ${tag}`,
                 autoArchiveDuration: 1440, // 24 hours
                 type: ChannelType.PrivateThread,
@@ -148,7 +239,7 @@ if (!process.env.DISCORD_BOT_TOKEN) {
                 .setTitle(`Nova Denúncia: ${tag}`)
                 .setColor(0xed4245)
                 .addFields(
-                    { name: 'Autor da Denúncia', value: `<@${user.id}>` },
+                    { name: 'Autor da Denúncia', value: `<@${user.id}> (ID: ${user.id})` },
                     { name: 'Motivo', value: reason },
                     { name: 'Provas', value: proof || 'Nenhuma prova fornecida' }
                 )
@@ -156,7 +247,7 @@ if (!process.env.DISCORD_BOT_TOKEN) {
             
             const closeButton = new ButtonBuilder()
                 .setCustomId('close_report_thread')
-                .setLabel('Fechar Denúncia')
+                .setLabel('Fechar Denúncia (Analisado)')
                 .setStyle(ButtonStyle.Success);
 
             const row = new ActionRowBuilder<ButtonBuilder>().addComponents(closeButton);
@@ -176,12 +267,16 @@ if (!process.env.DISCORD_BOT_TOKEN) {
      */
     async function handleCloseReportThread(interaction: any) {
         if (!interaction.channel || !interaction.channel.isThread()) return;
+        
+        // Disable the button
+        const disabledRow = new ActionRowBuilder<ButtonBuilder>()
+            .addComponents(
+                ButtonBuilder.from(interaction.component).setDisabled(true).setLabel('Denúncia Fechada')
+            );
+        
+        await interaction.update({ components: [disabledRow] });
 
-        await interaction.update({
-            content: 'Denúncia analisada. Este tópico será fechado e arquivado em 5 segundos.',
-            components: [],
-            embeds: [],
-        });
+        await interaction.channel.send('Denúncia analisada. Este tópico será bloqueado e arquivado em 5 segundos.');
 
         setTimeout(async () => {
             try {

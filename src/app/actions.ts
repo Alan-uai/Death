@@ -20,7 +20,6 @@ import {
 } from '@/ai/flows/manage-report-channel';
 import { getBotGuilds, type DiscordGuild } from '@/services/discord';
 import type { DiscordChannel } from '@/services/discord';
-import { registerGuildCommands } from '@/services/discord-commands';
 import { db } from '@/lib/firebase-admin';
 import { 
     getCustomCommand,
@@ -99,19 +98,6 @@ export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     } catch (error) {
         console.error('Erro ao obter servidores do bot:', error);
         return [];
-    }
-}
-
-export async function registerCommandsAction(guildId: string, enabled: boolean): Promise<boolean> {
-    try {
-        await registerGuildCommands(guildId, enabled);
-        const action = enabled ? 'registrados' : 'removidos';
-        console.log(`Comandos ${action} com sucesso para o servidor ${guildId}`);
-        return true;
-    } catch (error) {
-        const action = enabled ? 'registrar' : 'remover';
-        console.error(`Erro ao ${action} comandos para o servidor ${guildId}:`, error);
-        return false;
     }
 }
 
