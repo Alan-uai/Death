@@ -25,40 +25,6 @@ if (!process.env.DISCORD_BOT_TOKEN) {
     });
     
     /**
-     * Saves guild information, including its channel structure, to Firestore.
-     * @param guild The Discord guild object.
-     */
-    async function saveGuildToFirestore(guild: Guild): Promise<void> {
-      try {
-        if (!db) {
-            console.error('Firestore db instance is not available. Skipping saveGuildToFirestore.');
-            return;
-        }
-        const guildRef = db.collection('servers').doc(guild.id);
-        
-        // Fetch all channels in the guild
-        const channels = await guild.channels.fetch();
-        const channelData = channels.map(channel => ({
-            id: channel.id,
-            name: channel.name,
-            type: channel.type,
-        }));
-    
-        await guildRef.set({
-          id: guild.id,
-          name: guild.name,
-          channels: channelData,
-          addedAt: new Date(),
-        }, { merge: true }); // Use merge to avoid overwriting on re-adds
-    
-        console.log(`Successfully saved guild ${guild.name} (ID: ${guild.id}) and its channels to Firestore.`);
-      } catch (error) {
-        console.error(`Failed to save guild ${guild.id} to Firestore:`, error);
-      }
-    }
-    
-    
-    /**
      * Event handler for when the client is ready.
      * This is triggered once after the bot successfully logs in.
      */
@@ -72,12 +38,7 @@ if (!process.env.DISCORD_BOT_TOKEN) {
      */
     client.on(Events.GuildCreate, async (guild) => {
       console.log(`Bot has been added to a new guild: ${guild.name} (ID: ${guild.id})`);
-      
-      // Perform both actions concurrently
-      await Promise.all([
-        registerGuildCommands(guild.id),
-        saveGuildToFirestore(guild)
-      ]);
+      await registerGuildCommands(guild.id);
     });
     
     /**

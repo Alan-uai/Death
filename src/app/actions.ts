@@ -58,27 +58,38 @@ export const getGuildChannelsAction = cache(async (
   guildId: string
 ): Promise<DiscordChannel[]> => {
   try {
-    // First, try to get channels from Firestore if db is available
     if (db) {
       const guildDocRef = db.collection('servers').doc(guildId);
       const guildDoc = await guildDocRef.get();
 
-      if (guildDoc.exists && guildDoc.data()?.channels) {
-        console.log(`[Firestore] Found channels for guild ${guildId} in cache.`);
-        return guildDoc.data()?.channels as DiscordChannel[];
+      if (guildDoc.exists) {
+        const data = guildDoc.data();
+        if (data && data.channels) {
+          console.log(`[Firestore] Found channels for guild ${guildId} in cache.`);
+          return data.channels as DiscordChannel[];
+        }
       }
     } else {
         console.warn('[Firestore] DB not initialized. Skipping cache lookup for channels.')
     }
     
-    // If not in Firestore or db is unavailable, fetch from Discord API as a fallback
     console.log(`[Discord API] Channels for guild ${guildId} not in Firestore cache. Fetching from API.`);
     const { channels } = await getGuildChannels({ guildId });
+
+    if (db && channels.length > 0) {
+        console.log(`[Firestore] Saving fetched channels for guild ${guildId} to cache.`);
+        const guildDocRef = db.collection('servers').doc(guildId);
+        await guildDocRef.set({
+            id: guildId,
+            channels: channels,
+            refreshedAt: new Date(),
+        }, { merge: true });
+    }
+
     return channels;
 
   } catch (error) {
     console.error(`Error getting guild channels for guild ${guildId}:`, error);
-    // Return an empty array on error to avoid crashing the UI
     return [];
   }
 });
