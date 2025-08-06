@@ -58,14 +58,14 @@ const manageReportChannelFlow = ai.defineFlow(
       const { channels } = await getGuildChannels({ guildId });
       const reportChannelNames = ['denuncias', 'denúncias', 'reports'];
 
-      const existingChannel = channels.find((channel: DiscordChannel) =>
+      let reportChannel = channels.find((channel: DiscordChannel) =>
         reportChannelNames.includes(channel.name.toLowerCase())
       );
 
-      if (existingChannel) {
+      if (reportChannel) {
         return {
           success: true,
-          message: `Um canal de denúncias já existe: #${existingChannel.name}`,
+          message: `Um canal de denúncias já existe: #${reportChannel.name}. As denúncias criarão tópicos privados nele.`,
         };
       }
 
@@ -79,7 +79,7 @@ const manageReportChannelFlow = ai.defineFlow(
       const newChannel = await createGuildChannel(guildId, {
         name: 'denuncias',
         type: 0, // 0 = Text Channel
-        topic: 'Canal privado para denúncias. Apenas moderadores e administradores podem ver as mensagens.',
+        topic: 'Canal para denúncias. Use o comando /denunciar para criar um tópico privado.',
         permission_overwrites: [
           {
             id: everyoneRole.id,
@@ -92,7 +92,7 @@ const manageReportChannelFlow = ai.defineFlow(
 
       return {
         success: true,
-        message: `Canal de texto privado #${newChannel.name} criado com sucesso!`,
+        message: `Canal de texto privado #${newChannel.name} criado com sucesso! Use o comando /denunciar para criar tópicos privados.`,
       };
     } catch (error) {
       const errorMessage =

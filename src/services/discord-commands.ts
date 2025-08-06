@@ -2,18 +2,8 @@
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10';
 
 const commands = [
-  {
-    name: 'suggest-build',
-    description: 'Obtenha uma sugestão de build para seu personagem.',
-    options: [
-        {
-            name: 'style',
-            description: 'O estilo de jogo que você prefere (ex: agressivo, defensivo, mago).',
-            type: 3, // String
-            required: true,
-        },
-    ],
-  },
+  // O comando 'suggest-build' foi removido conforme a solicitação.
+  // A funcionalidade de sugestão agora é gerenciada pela criação automática de canais.
 ];
 
 async function registerGuildCommands(guildId: string): Promise<void> {
@@ -23,13 +13,17 @@ async function registerGuildCommands(guildId: string): Promise<void> {
 
   const url = `${DISCORD_API_BASE_URL}/applications/${process.env.DISCORD_CLIENT_ID}/guilds/${guildId}/commands`;
 
+  // Se não houver comandos para registrar, podemos simplesmente retornar ou enviar um array vazio.
+  // Enviar um array vazio removerá todos os comandos globais do servidor.
+  const body = commands.length > 0 ? JSON.stringify(commands) : '[]';
+
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
     },
-    body: JSON.stringify(commands),
+    body: body,
   });
 
   if (!response.ok) {
@@ -39,7 +33,11 @@ async function registerGuildCommands(guildId: string): Promise<void> {
   }
 
   const data = await response.json();
-  console.log(`Registrado(s) ${data.length} comando(s) com sucesso para o servidor ${guildId}.`);
+  if (data.length > 0) {
+      console.log(`Registrado(s) ${data.length} comando(s) com sucesso para o servidor ${guildId}.`);
+  } else {
+      console.log(`Todos os comandos do servidor foram removidos para o servidor ${guildId}.`);
+  }
 }
 
 export { registerGuildCommands };

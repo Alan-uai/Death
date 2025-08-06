@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChatMessage, type Message } from '@/components/chat-message';
 import { ChatInput } from '@/components/chat-input';
-import { askQuestionAction, suggestBuildAction } from '@/app/actions';
+import { askQuestionAction } from '@/app/actions';
 import { Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DiscordChannel } from '@/services/discord';
@@ -27,10 +27,15 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
     username: 'Death',
     text: 'Este é o canal de Perguntas e Respostas. Pergunte-me qualquer coisa sobre o jogo me mencionando com @.',
   },
-  'build-suggestions': {
+  'suggestions': {
     author: 'bot',
     username: 'Death',
-    text: 'Procurando uma nova build? Use `/suggest-build` com seu estilo de jogo preferido.',
+    text: 'Este é o canal de sugestões. Crie um novo post para compartilhar sua ideia com a comunidade!',
+  },
+   'reports': {
+    author: 'bot',
+    username: 'Death',
+    text: 'Este é o canal de denúncias. Use o comando /denunciar em qualquer canal para abrir um tópico privado aqui.',
   },
 };
 
@@ -42,17 +47,22 @@ export function ChatPanel({ channels }: ChatPanelProps) {
   const [activeChannel, setActiveChannel] = useState<DiscordChannel | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
-  const textChannels = channels.filter(c => c.type === 0);
+  // Includes text (0) and forum (15) channels
+  const textAndForumChannels = channels.filter(c => c.type === 0 || c.type === 15);
 
   useEffect(() => {
-    if (!activeChannel && textChannels.length > 0) {
-      setActiveChannel(textChannels[0]);
+    if (!activeChannel && textAndForumChannels.length > 0) {
+      setActiveChannel(textAndForumChannels[0]);
     }
-  }, [channels, activeChannel, textChannels]);
+  }, [channels, activeChannel, textAndForumChannels]);
 
   useEffect(() => {
     if (activeChannel) {
-        const welcomeMessageKey = activeChannel.name.includes('q-and-a') ? 'q-and-a' : activeChannel.name.includes('build') ? 'build-suggestions' : 'default';
+        let welcomeMessageKey = 'default';
+        if (activeChannel.name.includes('q-and-a')) welcomeMessageKey = 'q-and-a';
+        if (activeChannel.name.includes('sugest')) welcomeMessageKey = 'suggestions';
+        if (activeChannel.name.includes('denuncia')) welcomeMessageKey = 'reports';
+
         const welcomeMessage: Message = {
           ...(welcomeMessages[welcomeMessageKey] || welcomeMessages.default),
           id: `${activeChannel.id}-welcome`,
@@ -100,26 +110,10 @@ export function ChatPanel({ channels }: ChatPanelProps) {
         id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
         embed: { title: `Resposta para: ${restOfInput}`, description: answer },
       };
-    } else if (command === '/suggest-build') {
-      const { buildSuggestion, reasoning } = await suggestBuildAction({
-        gameState: 'meio de jogo, nível 50',
-        playerPreferences: restOfInput,
-      });
-      botResponse = {
-        id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-        embed: {
-          title: 'Sugestão de Build',
-          description: `Baseado na sua preferência por um estilo *${restOfInput}*:`,
-          fields: [
-            { name: 'Sugestão', value: buildSuggestion },
-            { name: 'Justificativa', value: reasoning },
-          ],
-        },
-      };
     } else {
         botResponse = {
             id: responseId, author: 'bot', username: 'Death', timestamp: responseTimestamp,
-            text: `O comando \`${command}\` não foi reconhecido ou não está configurado para este canal.`,
+            text: `O comando \`${command}\` não foi reconhecido. Os comandos disponíveis são configuráveis no painel de Comandos Customizados.`,
         };
     }
     
@@ -133,9 +127,9 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     <div className="flex h-full flex-col md:flex-row">
       {/* Channel List */}
       <div className="w-full md:w-60 flex-shrink-0 bg-[#2f3136] p-2">
-        <h3 className="px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Canais de Texto</h3>
+        <h3 className="px-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Canais</h3>
         <div className="mt-2 space-y-1">
-          {textChannels.map((channel) => (
+          {textAndForumChannels.map((channel) => (
             <button
               key={channel.id}
               onClick={() => setActiveChannel(channel)}
@@ -148,8 +142,8 @@ export function ChatPanel({ channels }: ChatPanelProps) {
               <span className="font-medium">{channel.name}</span>
             </button>
           ))}
-           {textChannels.length === 0 && (
-            <p className="px-2 text-sm text-muted-foreground">Nenhum canal de texto encontrado.</p>
+           {textAndForumChannels.length === 0 && (
+            <p className="px-2 text-sm text-muted-foreground">Nenhum canal encontrado.</p>
           )}
         </div>
       </div>

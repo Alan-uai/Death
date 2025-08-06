@@ -15,18 +15,26 @@ interface ChatInputProps {
 
 const placeholders: Record<string, string> = {
     'q-and-a': 'Mensagem com @Death <sua pergunta>',
-    'build-suggestions': 'Mensagem com /suggest-build <estilo>',
+    'suggestions': 'Crie um novo post para sua sugestão neste canal de fórum.',
+    'reports': 'Use /denunciar em qualquer canal para criar um tópico privado.',
 };
 
 
 export function ChatInput({ onSendMessage, isLoading, channelId, disabled = false }: ChatInputProps) {
   const [input, setInput] = useState('');
   
-  const placeholder = placeholders[channelId] || 'Enviar uma mensagem...';
+  let currentPlaceholder = 'Enviar uma mensagem...';
+  if (channelId) {
+      const channelKey = Object.keys(placeholders).find(key => channelId.toLowerCase().includes(key));
+      currentPlaceholder = channelKey ? placeholders[channelKey] : 'Enviar uma mensagem...';
+  }
+
+  const isInputDisabled = isLoading || disabled || channelId.toLowerCase().includes('suggestions') || channelId.toLowerCase().includes('reports');
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() && !isLoading && !disabled) {
+    if (input.trim() && !isInputDisabled) {
       onSendMessage(input);
       setInput('');
     }
@@ -39,9 +47,9 @@ export function ChatInput({ onSendMessage, isLoading, channelId, disabled = fals
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={disabled ? 'Selecione um canal para começar' : placeholder}
+          placeholder={disabled ? 'Selecione um canal para começar' : currentPlaceholder}
           className="h-12 rounded-lg bg-input pl-10 pr-12 text-base"
-          disabled={isLoading || disabled}
+          disabled={isInputDisabled}
           autoComplete="off"
         />
         <Button
@@ -49,7 +57,7 @@ export function ChatInput({ onSendMessage, isLoading, channelId, disabled = fals
           size="icon"
           variant="ghost"
           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:bg-transparent hover:text-primary"
-          disabled={isLoading || !input.trim() || disabled}
+          disabled={isInputDisabled || !input.trim()}
         >
           <Send className="h-5 w-5" />
         </Button>

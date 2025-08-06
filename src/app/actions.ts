@@ -7,10 +7,6 @@ import {
   type AnswerGameQuestionsInput,
 } from '@/ai/flows/answer-game-questions';
 import { getBotStatus } from '@/ai/flows/get-bot-status';
-import {
-  suggestInGameBuild,
-  type SuggestInGameBuildInput,
-} from '@/ai/flows/suggest-in-game-build';
 import { getGuildChannels as getGuildChannelsFlow } from '@/ai/flows/get-guild-channels';
 import {
   manageSuggestionChannel,
@@ -44,21 +40,6 @@ export async function askQuestionAction(
   }
 }
 
-export async function suggestBuildAction(
-  input: SuggestInGameBuildInput
-): Promise<{ buildSuggestion: string; reasoning: string }> {
-  try {
-    const result = await suggestInGameBuild(input);
-    return result;
-  } catch (error) {
-    console.error('Erro na ação suggestBuildAction:', error);
-    return {
-      buildSuggestion: 'Não foi possível gerar uma sugestão de build.',
-      reasoning: 'Ocorreu um erro ao processar a solicitação. Por favor, tente novamente.',
-    };
-  }
-}
-
 export async function getBotStatusAction(): Promise<string> {
   try {
     const result = await getBotStatus();
@@ -73,27 +54,28 @@ export const getGuildChannelsAction = cache(async (
   guildId: string
 ): Promise<DiscordChannel[]> => {
   try {
-    if (db) {
-      const guildDocRef = db.collection('servers').doc(guildId);
-      const guildDoc = await guildDocRef.get();
+    if (!db) {
+      console.warn('[Firestore] DB não inicializado. Pulando a busca de canais no cache e buscando na API.');
+      const { channels } = await getGuildChannelsFlow({ guildId });
+      return channels;
+    }
 
-      if (guildDoc.exists) {
-        const data = guildDoc.data();
-        if (data && data.channels) {
-          console.log(`[Firestore] Canais encontrados para o servidor ${guildId} no cache.`);
-          return data.channels as DiscordChannel[];
-        }
+    const guildDocRef = db.collection('servers').doc(guildId);
+    const guildDoc = await guildDocRef.get();
+
+    if (guildDoc.exists) {
+      const data = guildDoc.data();
+      if (data && data.channels && data.channels.length > 0) {
+        console.log(`[Firestore] Canais encontrados para o servidor ${guildId} no cache.`);
+        return data.channels as DiscordChannel[];
       }
-    } else {
-        console.warn('[Firestore] DB não inicializado. Pulando a busca de canais no cache.')
     }
     
     console.log(`[Discord API] Canais para o servidor ${guildId} não encontrados no cache do Firestore. Buscando na API.`);
     const { channels } = await getGuildChannelsFlow({ guildId });
 
-    if (db && channels.length > 0) {
-        console.log(`[Firestore] Salvando canais buscados para o servidor ${guildId} no cache.`);
-        const guildDocRef = db.collection('servers').doc(guildId);
+    if (channels.length > 0) {
+        console.log(`[Firestore] Salvando ${channels.length} canais buscados para o servidor ${guildId} no cache.`);
         await guildDocRef.set({
             id: guildId,
             channels: channels,
@@ -108,6 +90,7 @@ export const getGuildChannelsAction = cache(async (
     return [];
   }
 });
+
 
 export async function getBotGuildsAction(): Promise<DiscordGuild[]> {
     try {

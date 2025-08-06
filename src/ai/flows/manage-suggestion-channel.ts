@@ -47,6 +47,7 @@ const manageSuggestionChannelFlow = ai.defineFlow(
   },
   async ({ guildId, enable }) => {
     if (!enable) {
+      // Logic to disable or delete the channel could be added here in the future.
       return {
         success: true,
         message: 'A funcionalidade de sugestões foi desativada.',
@@ -68,11 +69,12 @@ const manageSuggestionChannelFlow = ai.defineFlow(
         };
       }
 
-      // Channel doesn't exist, create it.
+      // Channel doesn't exist, create it as a Forum channel.
       const newChannel = await createGuildChannel(guildId, {
         name: 'sugestoes',
         type: 15, // 15 = Forum Channel
-        topic: 'Envie suas sugestões para a comunidade aqui! Reaja com 👍 ou 👎.',
+        topic: 'Envie suas sugestões para a comunidade aqui! Reaja com 👍 para apoiar.',
+        // The Discord API only supports one default reaction emoji upon creation.
         default_reaction_emoji: {
           emoji_id: null,
           emoji_name: '👍',
@@ -84,8 +86,9 @@ const manageSuggestionChannelFlow = ai.defineFlow(
         ],
       });
 
-      // After creating the channel, we could add a follow-up action to add the second reaction,
-      // but channel creation only supports one default reaction. For this prototype, one is sufficient.
+      // To add a second reaction (e.g., 👎), a bot would need to listen to
+      // ThreadCreate events and add the reaction programmatically.
+      // For this prototype, one default reaction is a good starting point.
       
       return {
         success: true,
