@@ -8,7 +8,7 @@ import type { CustomCommand } from '@/lib/types';
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 
-async function fetchDiscordApi(endpoint: string, token: string) {
+const fetchDiscordApi = cache(async (endpoint: string, token: string) => {
     const res = await fetch(`${DISCORD_API_BASE}${endpoint}`, {
         headers: { Authorization: `Bearer ${token}` },
     });
@@ -17,9 +17,9 @@ async function fetchDiscordApi(endpoint: string, token: string) {
         throw new Error(`Failed to fetch from Discord API: ${endpoint}`);
     }
     return res.json();
-}
+});
 
-async function getBotGuilds(): Promise<DiscordGuild[]> {
+const getBotGuilds = cache(async (): Promise<DiscordGuild[]> => {
     if (!BOT_TOKEN) {
         throw new Error("DISCORD_BOT_TOKEN is not configured.");
     }
@@ -31,7 +31,7 @@ async function getBotGuilds(): Promise<DiscordGuild[]> {
         throw new Error('Failed to fetch bot guilds from Discord API.');
     }
     return res.json();
-}
+});
 
 export const getManageableGuildsAction = cache(async (
   accessToken: string
