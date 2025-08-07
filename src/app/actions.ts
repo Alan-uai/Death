@@ -57,24 +57,36 @@ async function postToBotApi(endpoint: string, body: object) {
 
 
 export async function saveCommandConfigAction(guildId: string, command: CustomCommand) {
+    // Este endpoint já existe no bot.
     return postToBotApi('config-command', { guildId, command });
 }
 
 export async function saveChannelConfigAction(guildId: string, config: { mode: string; suggestions: { enabled: boolean; }; reports: { enabled: boolean; }; }) {
+    // Usando o endpoint genérico. A API do bot deve esperar { channelManagement: ... }
     const payload = {
         guildId,
-        mode: config.mode,
-        suggestions_enabled: config.suggestions.enabled,
-        reports_enabled: config.reports.enabled,
+        config: {
+            channelManagement: {
+                mode: config.mode,
+                suggestions_enabled: config.suggestions.enabled,
+                reports_enabled: config.reports.enabled,
+            }
+        }
     };
-    return postToBotApi('config-channel', payload);
+    return postToBotApi('config-generic', payload);
 }
 
 export async function saveGenericConfigAction(guildId: string, config: object) {
-    return postToBotApi('config-generic', { guildId, ...config });
+     // Usando o endpoint genérico. A API do bot deve esperar um objeto de configuração aninhado.
+    const payload = {
+        guildId,
+        config: config
+    };
+    return postToBotApi('config-generic', payload);
 }
 
 export async function setOwnerAction(userId: string) {
+    // Este endpoint já existe no bot.
     return postToBotApi('set-owner', { userId });
 }
 
@@ -186,5 +198,3 @@ export const getCustomCommandAction = cache(async (
       return null;
     }
 });
-
-
