@@ -151,11 +151,10 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
           type: 'reply',
           message: actionData
       };
-
-      if (editingComponent.type === 'button') {
+      
+      if ('style' in editingComponent) { // It's an ActionButton
           handleComponentUpdate(editingComponent.id, { action: newAction });
-      } else {
-         // This is a SelectMenuOption, the update is more complex
+      } else { // It's a SelectMenuOption
          const updatedComponents = components.map(c => {
              if (c.type === 'selectMenu') {
                  const newOptions = c.options.map(opt => 
@@ -310,12 +309,14 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
                     </DialogDescription>
                 </DialogHeader>
                 <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-                    <MessageEditorPanel 
-                        guildId="DUMMY_GUILD_ID_FOR_ACTION_EDITOR"
-                        onSave={saveAction}
-                        saveButtonText="Salvar Ação"
-                        initialData={editingComponent?.action?.message}
-                    />
+                    {editingComponent && (
+                        <MessageEditorPanel 
+                            guildId="DUMMY_GUILD_ID_FOR_ACTION_EDITOR"
+                            onSave={saveAction}
+                            saveButtonText="Salvar Ação"
+                            initialData={editingComponent.action?.message || {}}
+                        />
+                    )}
                 </div>
             </DialogContent>
         </Dialog>
@@ -546,3 +547,5 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave, onEdit
         </AlertDialog>
     )
 }
+
+    
