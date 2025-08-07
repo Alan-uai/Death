@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Checkbox } from './ui/checkbox';
 import { cn } from '@/lib/utils';
+import { ActionRowBuilder } from './action-row-builder';
 
 type AccessoryButton = {
     type: 'button';
@@ -42,6 +43,8 @@ type Component = {
   // Separator specific
   spacing?: 'normal' | 'large';
   divider?: boolean;
+  // ActionRow specific
+  components?: any[];
 };
 
 
@@ -76,6 +79,9 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
             newComponent.spacing = 'normal';
             newComponent.divider = true;
         }
+        if (type === 'actionRow') {
+            newComponent.components = [];
+        }
         setComponents(prev => [...prev, newComponent]);
     };
 
@@ -99,27 +105,10 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
         ),
         actionRow: ({ component }) => (
             <BlockWrapper title="Action Row (Botões, Menus)" onRemove={() => removeComponent(component.id)}>
-                <div className="p-4 border rounded-md bg-secondary/50 space-y-3">
-                    <Label>Botão 1</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                        <Input placeholder="Label do Botão" />
-                        <Select defaultValue="primary">
-                            <SelectTrigger><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="primary">Primary</SelectItem>
-                                <SelectItem value="secondary">Secondary</SelectItem>
-                                <SelectItem value="success">Success</SelectItem>
-                                <SelectItem value="danger">Danger</SelectItem>
-                                <SelectItem value="link">Link</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                     <Label>Menu de Seleção 1</Label>
-                    <Input placeholder="Custom ID do Menu" />
-                    <Input placeholder="Opção 1 (Label)" />
-                    <Button variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Adicionar Opção</Button>
-                </div>
-                <Button variant="outline" size="sm" className="mt-2"><PlusCircle className="mr-2 h-4 w-4" />Adicionar Componente na Linha</Button>
+                <ActionRowBuilder 
+                    initialComponents={component.components}
+                    onUpdate={(newComponents) => handleComponentUpdate(component.id, { components: newComponents })}
+                />
             </BlockWrapper>
         ),
         section: ({ component }) => (
@@ -317,3 +306,5 @@ function BlockWrapper({ title, children, onRemove }: { title: string, children: 
         </Card>
     );
 }
+
+    
