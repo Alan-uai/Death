@@ -136,18 +136,18 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
                         />
                          <p className="text-xs text-muted-foreground mt-1">Este texto aparece fora do bloco principal. Suporta Markdown.</p>
                     </div>
-
-                    {mode === 'embed' ? (
-                        <EmbedBuilder
+                    <TabsContent value="embed" className="m-0">
+                         <EmbedBuilder
                             initialData={embedData}
                             onUpdate={setEmbedData}
                         />
-                    ) : (
+                    </TabsContent>
+                    <TabsContent value="container" className="m-0">
                         <ContainerBuilder
                             initialComponents={containerComponents}
                             onUpdate={setContainerComponents}
                         />
-                    )}
+                    </TabsContent>
                 </div>
             </CardContent>
             {/* Render footer with save button only if it has the onSave prop */}
@@ -163,5 +163,3 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
         </Card>
     );
 }
-
-    
