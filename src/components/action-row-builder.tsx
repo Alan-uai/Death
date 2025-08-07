@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Input } from './ui/input';
-import { PlusCircle, Trash2, GripVertical, Settings, Smile, Edit, Lock, Palette, MenuSquare, Check, Pencil, MessageSquare } from 'lucide-react';
+import { PlusCircle, Trash2, GripVertical, Settings, Smile, Edit, Lock, Palette, MenuSquare, Check, Pencil, MessageSquare, Bot } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,7 +30,16 @@ import {
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
+import { MessageEditorPanel } from './message-editor-panel';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 
+
+// --- Type Definitions ---
+
+type BotAction = {
+    type: 'reply';
+    message: any; // This will hold the data from MessageEditorPanel
+}
 
 type ActionButton = {
   type: 'button';
@@ -40,15 +49,17 @@ type ActionButton = {
   disabled: boolean;
   emoji?: string;
   url?: string;
+  action?: BotAction;
 };
 
 type SelectMenuOption = {
     id: string;
-    label: string;
+    label:string;
     value: string;
     description?: string;
     emoji?: string;
     default: boolean;
+    action?: BotAction;
 }
 
 type ActionSelectMenu = {
@@ -80,9 +91,12 @@ const buttonStyleClasses: Record<ActionButton['style'], string> = {
 
 export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRowBuilderProps) {
   const [components, setComponents] = useState<ActionRowComponent[]>(initialComponents);
-  const [editingButton, setEditingButton] = useState<ActionButton | null>(null);
-  const [newLabel, setNewLabel] = useState('');
+  const [editingComponent, setEditingComponent] = useState<ActionButton | SelectMenuOption | null>(null);
+  
+  // State for dialogs
   const [isLabelAlertOpen, setIsLabelAlertOpen] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [isActionEditorOpen, setIsActionEditorOpen] = useState(false);
 
   const handleUpdate = (newComponents: ActionRowComponent[]) => {
       setComponents(newComponents);
@@ -112,18 +126,51 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
   };
 
   const openLabelEditor = (button: ActionButton) => {
-    setEditingButton(button);
+    setEditingComponent(button);
     setNewLabel(button.label);
     setIsLabelAlertOpen(true);
   };
 
   const saveLabel = () => {
-    if (editingButton) {
-      handleComponentUpdate(editingButton.id, { label: newLabel });
+    if (editingComponent && 'label' in editingComponent) {
+      handleComponentUpdate(editingComponent.id, { label: newLabel });
     }
     setIsLabelAlertOpen(false);
-    setEditingButton(null);
+    setEditingComponent(null);
   };
+  
+  const openActionEditor = (component: ActionButton | SelectMenuOption) => {
+      setEditingComponent(component);
+      setIsActionEditorOpen(true);
+  }
+
+  const saveAction = (actionData: any) => {
+      if (!editingComponent) return;
+
+      const newAction: BotAction = {
+          type: 'reply',
+          message: actionData
+      };
+
+      if (editingComponent.type === 'button') {
+          handleComponentUpdate(editingComponent.id, { action: newAction });
+      } else {
+         // This is a SelectMenuOption, the update is more complex
+         const updatedComponents = components.map(c => {
+             if (c.type === 'selectMenu') {
+                 const newOptions = c.options.map(opt => 
+                    opt.id === editingComponent.id ? { ...opt, action: newAction } : opt
+                 );
+                 return { ...c, options: newOptions };
+             }
+             return c;
+         });
+         handleUpdate(updatedComponents);
+      }
+      
+      setIsActionEditorOpen(false);
+      setEditingComponent(null);
+  }
 
 
   return (
@@ -134,7 +181,7 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-3">
-          {components.map((component, index) => (
+          {components.map((component) => (
              <div key={component.id}>
                 {component.type === 'button' && (
                     <Card className="p-3 bg-background/50 relative group flex items-center gap-3">
@@ -149,6 +196,7 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
                                   >
                                       {component.emoji && <span className="mr-2">{component.emoji}</span>}
                                       {component.label}
+                                      {component.action && <Bot className="ml-2 h-3 w-3 text-white/70" />}
                                   </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent>
@@ -160,6 +208,10 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
                                       <Smile className="mr-2 h-4 w-4" />
                                       Definir Emoji
                                   </DropdownMenuItem>
+                                   <DropdownMenuItem onSelect={() => openActionEditor(component)}>
+                                        <Bot className="mr-2 h-4 w-4" />
+                                        Definir Ação
+                                    </DropdownMenuItem>
                                   <DropdownMenuItem onSelect={() => handleComponentUpdate(component.id, { disabled: !component.disabled })}>
                                       <Lock className="mr-2 h-4 w-4" />
                                       {component.disabled ? 'Habilitar' : 'Desabilitar'}
@@ -201,6 +253,7 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
                         component={component}
                         onUpdate={(updates) => handleComponentUpdate(component.id, updates)}
                         onRemove={() => removeComponent(component.id)}
+                        onEditAction={openActionEditor}
                     />
                 )}
              </div>
@@ -225,6 +278,7 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
           </DropdownMenuContent>
         </DropdownMenu>
         
+        {/* --- DIALOGS --- */}
         <AlertDialog open={isLabelAlertOpen} onOpenChange={setIsLabelAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -240,11 +294,31 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
                     maxLength={80}
                 />
                 <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => setEditingComponent(null)}>Cancelar</AlertDialogCancel>
                 <AlertDialogAction onClick={saveLabel}>Salvar</AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>
         </AlertDialog>
+
+        <Dialog open={isActionEditorOpen} onOpenChange={setIsActionEditorOpen}>
+            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>Editor de Ação</DialogTitle>
+                    <DialogDescription>
+                        Configure o que o bot deve fazer quando este componente for clicado.
+                        A ação principal é "Responder com uma mensagem".
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex-grow overflow-y-auto pr-6 -mr-6">
+                    <MessageEditorPanel 
+                        guildId="DUMMY_GUILD_ID_FOR_ACTION_EDITOR"
+                        onSave={saveAction}
+                        saveButtonText="Salvar Ação"
+                        initialData={editingComponent?.action?.message}
+                    />
+                </div>
+            </DialogContent>
+        </Dialog>
 
       </CardContent>
     </Card>
@@ -258,9 +332,10 @@ interface SelectMenuBuilderProps {
     component: ActionSelectMenu;
     onUpdate: (updates: Partial<ActionSelectMenu>) => void;
     onRemove: () => void;
+    onEditAction: (option: SelectMenuOption) => void;
 }
 
-function SelectMenuBuilder({ component, onUpdate, onRemove }: SelectMenuBuilderProps) {
+function SelectMenuBuilder({ component, onUpdate, onRemove, onEditAction }: SelectMenuBuilderProps) {
     const [isGlobalSettingsOpen, setGlobalSettingsOpen] = useState(false);
     const [isOptionEditorOpen, setOptionEditorOpen] = useState(false);
     const [editingOption, setEditingOption] = useState<SelectMenuOption | null>(null);
@@ -275,6 +350,8 @@ function SelectMenuBuilder({ component, onUpdate, onRemove }: SelectMenuBuilderP
         let newOptions: SelectMenuOption[];
 
         if (existingOption) {
+            // Preserve the action when updating other fields
+            optionToSave.action = existingOption.action;
             newOptions = component.options.map(opt => opt.id === optionToSave.id ? optionToSave : opt);
         } else {
             newOptions = [...component.options, optionToSave];
@@ -321,6 +398,7 @@ function SelectMenuBuilder({ component, onUpdate, onRemove }: SelectMenuBuilderP
                      <div key={option.id} className="group/option flex items-center w-full bg-secondary rounded-md pr-2">
                         <Button variant="ghost" className="flex-grow justify-start" onClick={() => openOptionEditor(option)}>
                             {option.label || 'Opção sem nome'}
+                            {option.action && <Bot className="ml-auto mr-2 h-3 w-3 text-white/70" />}
                             {option.default && <Check className="ml-auto h-4 w-4 text-primary" />}
                         </Button>
                          <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover/option:opacity-100" onClick={() => handleRemoveOption(option.id)}>
@@ -347,6 +425,7 @@ function SelectMenuBuilder({ component, onUpdate, onRemove }: SelectMenuBuilderP
                     onOpenChange={setOptionEditorOpen}
                     option={editingOption}
                     onSave={handleSaveOption}
+                    onEditAction={onEditAction}
                 />
             )}
         </Card>
@@ -407,9 +486,10 @@ interface SelectOptionEditorDialogProps {
     onOpenChange: (isOpen: boolean) => void;
     option: SelectMenuOption;
     onSave: (option: SelectMenuOption) => void;
+    onEditAction: (option: SelectMenuOption) => void;
 }
 
-function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave }: SelectOptionEditorDialogProps) {
+function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave, onEditAction }: SelectOptionEditorDialogProps) {
     const [currentOption, setCurrentOption] = useState(option);
     
     const handleSave = () => {
@@ -419,6 +499,11 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave }: Sele
 
     const updateField = (field: keyof SelectMenuOption, value: any) => {
         setCurrentOption(prev => ({...prev, [field]: value}));
+    }
+
+    const handleEditAction = () => {
+        onOpenChange(false);
+        onEditAction(currentOption);
     }
 
     return (
@@ -449,6 +534,9 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave }: Sele
                         <Switch id="opt-default" checked={currentOption.default} onCheckedChange={checked => updateField('default', checked)} />
                         <Label htmlFor="opt-default">Set as default</Label>
                     </div>
+                    <Button variant="outline" className="w-full" onClick={handleEditAction}>
+                        <Bot className="mr-2 h-4 w-4" /> Definir Ação de Resposta
+                    </Button>
                 </div>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -458,5 +546,3 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave }: Sele
         </AlertDialog>
     )
 }
-
-    

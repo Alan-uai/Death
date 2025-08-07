@@ -38,7 +38,7 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
             response: {
                 content: messageData.textContent,
                 embed: messageData.mode === 'embed' ? messageData.embed : undefined,
-                container: messageData.mode === 'container' ? messageData.components : undefined,
+                container: messageData.mode === 'container' ? messageData.container : undefined,
             }
         };
 
@@ -84,10 +84,8 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
       </Card>
       
       {/* O MessageEditorPanel agora gerencia seu próprio estado e passa os dados para o handleSave */}
-      <MessageEditorPanel guildId={guildId} onSave={handleSave} isSaving={isSaving} />
+      <MessageEditorPanel guildId={guildId} onSave={handleSave} isSaving={isSaving} saveButtonText="Salvar Comando" />
 
     </div>
   );
 }
-
-    

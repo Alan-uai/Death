@@ -33,8 +33,8 @@ export const CustomCommandSchema = z.object({
   responseType: z.enum(['container', 'embed']),
   response: z.object({
     content: z.string().optional(),
-    embed: z.any().optional(), // Using any() for simplicity, can be a detailed Zod schema for an embed
-    container: z.any().optional(), // Using any() for simplicity, can be a detailed Zod schema for V2 components
+    embed: z.any().optional(),
+    container: z.any().optional(), // Represents the array of components for V2 containers
   }),
 });
 export type CustomCommand = z.infer<typeof CustomCommandSchema>;

@@ -17,11 +17,20 @@ type EditorMode = 'embed' | 'container';
 interface MessageEditorPanelProps {
     messageId?: string;
     guildId: string;
-    onSave?: (data: any) => Promise<void>;
+    onSave?: (data: any) => Promise<void> | void; // Can be sync or async
     isSaving?: boolean;
+    saveButtonText?: string;
+    initialData?: any; // To prepopulate the editor, e.g. for an action
 }
 
-export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = false }: MessageEditorPanelProps) {
+export function MessageEditorPanel({ 
+    messageId, 
+    guildId, 
+    onSave, 
+    isSaving = false,
+    saveButtonText = "Salvar",
+    initialData
+}: MessageEditorPanelProps) {
     const [mode, setMode] = useState<EditorMode>('embed');
     const [textContent, setTextContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -35,14 +44,38 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
         const dataToSave = {
             mode,
             textContent,
-            embed: mode === 'embed' ? embedData : null,
-            components: mode === 'container' ? containerComponents : null,
+            embed: mode === 'embed' ? embedData : undefined,
+            container: mode === 'container' ? containerComponents : undefined,
         };
         onSave(dataToSave);
     }
 
-    // Load existing data if messageId is provided
+    const loadInitialData = useCallback((data: any) => {
+        if (data) {
+            setMode(data.mode || 'embed');
+            setTextContent(data.textContent || '');
+            if (data.mode === 'embed' && data.embed) {
+                setEmbedData(data.embed);
+            } else {
+                setEmbedData({});
+            }
+            if (data.mode === 'container' && data.container) {
+                setContainerComponents(data.container);
+            } else {
+                setContainerComponents([]);
+            }
+        }
+    }, []);
+
+    // Load existing data from Firestore if messageId is provided
     useEffect(() => {
+        // If initialData is provided, it takes precedence (e.g., for action editor)
+        if (initialData) {
+            loadInitialData(initialData);
+            setIsLoading(false);
+            return;
+        }
+
         if (!messageId) {
             setIsLoading(false);
             return;
@@ -54,14 +87,13 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
                 const config = await getGuildConfigAction(guildId);
                 const messageConfig = config?.botResponses?.[messageId];
                 if (messageConfig) {
-                    setMode(messageConfig.responseType || 'embed');
-                    setTextContent(messageConfig.response?.content || '');
-                    if (messageConfig.responseType === 'embed' && messageConfig.response?.embed) {
-                        setEmbedData(messageConfig.response.embed);
+                    const responseData = {
+                        mode: messageConfig.responseType,
+                        textContent: messageConfig.response?.content,
+                        embed: messageConfig.response?.embed,
+                        container: messageConfig.response?.container
                     }
-                    if (messageConfig.responseType === 'container' && messageConfig.response?.container) {
-                        setContainerComponents(messageConfig.response.container);
-                    }
+                    loadInitialData(responseData);
                 }
             } catch (error) {
                 console.error(`Failed to fetch config for message: ${messageId}`, error);
@@ -71,7 +103,7 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
         };
 
         fetchMessageConfig();
-    }, [messageId, guildId]);
+    }, [messageId, guildId, initialData, loadInitialData]);
     
     if (isLoading) {
        return (
@@ -95,7 +127,7 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
                     <Skeleton className="h-96 w-full" />
                 </div>
             </CardContent>
-             {/* Render footer only if it's a command builder */}
+             {/* Render footer only if it's a command builder or action editor */}
              {onSave && (
                 <CardFooter className="flex justify-end mt-6">
                     <Skeleton className="h-10 w-36" />
@@ -156,7 +188,7 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = fals
                     <Button onClick={handleSaveClick} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Bot className="mr-2 h-4 w-4" />
-                        Salvar
+                        {saveButtonText}
                     </Button>
                 </CardFooter>
             )}
