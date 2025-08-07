@@ -84,8 +84,10 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
       </Card>
       
       {/* O MessageEditorPanel agora gerencia seu próprio estado e passa os dados para o handleSave */}
-      <MessageEditorPanel onSave={handleSave} guildId={guildId} isSaving={isSaving} />
+      <MessageEditorPanel guildId={guildId} onSave={handleSave} isSaving={isSaving} />
 
     </div>
   );
 }
+
+    

@@ -17,11 +17,11 @@ type EditorMode = 'embed' | 'container';
 interface MessageEditorPanelProps {
     messageId?: string;
     guildId: string;
-    onSave: (data: any) => Promise<void>;
-    isSaving: boolean;
+    onSave?: (data: any) => Promise<void>;
+    isSaving?: boolean;
 }
 
-export function MessageEditorPanel({ messageId, guildId, onSave, isSaving }: MessageEditorPanelProps) {
+export function MessageEditorPanel({ messageId, guildId, onSave, isSaving = false }: MessageEditorPanelProps) {
     const [mode, setMode] = useState<EditorMode>('embed');
     const [textContent, setTextContent] = useState('');
     const [isLoading, setIsLoading] = useState(true);
@@ -31,6 +31,7 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving }: Mes
     const [containerComponents, setContainerComponents] = useState([]);
 
     const handleSaveClick = () => {
+        if (!onSave) return;
         const dataToSave = {
             mode,
             textContent,
@@ -95,7 +96,7 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving }: Mes
                 </div>
             </CardContent>
              {/* Render footer only if it's a command builder */}
-             {!messageId && (
+             {onSave && (
                 <CardFooter className="flex justify-end mt-6">
                     <Skeleton className="h-10 w-36" />
                 </CardFooter>
@@ -149,25 +150,18 @@ export function MessageEditorPanel({ messageId, guildId, onSave, isSaving }: Mes
                     )}
                 </div>
             </CardContent>
-            {/* Render footer with save button only if it's a command builder */}
-             {!messageId && (
+            {/* Render footer with save button only if it has the onSave prop */}
+             {onSave && (
                 <CardFooter className="flex justify-end mt-6">
                     <Button onClick={handleSaveClick} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Bot className="mr-2 h-4 w-4" />
-                        Salvar Comando
-                    </Button>
-                </CardFooter>
-            )}
-             {/* If it's for bot responses, the save button is in the parent component */}
-              {messageId && (
-                <CardFooter className="flex justify-end mt-6">
-                    <Button onClick={handleSaveClick} disabled={isSaving}>
-                        {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Salvar Resposta
+                        Salvar
                     </Button>
                 </CardFooter>
             )}
         </Card>
     );
 }
+
+    

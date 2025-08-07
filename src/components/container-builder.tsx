@@ -10,6 +10,12 @@ import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 type AccessoryButton = {
     type: 'button';
@@ -198,19 +204,22 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
                     )}
                 </div>
 
-                <Card className="border-dashed">
-                    <CardContent className="p-4 text-center">
-                        <p className="text-sm font-medium mb-3">Adicionar Componente ao Contêiner</p>
-                        <div className="flex flex-wrap justify-center gap-2">
-                             {componentOptions.map(opt => (
-                                <Button key={opt.type} variant="outline" size="sm" onClick={() => addComponent(opt.type)}>
-                                    <opt.icon className="mr-2 h-4 w-4" />
-                                    {opt.label}
-                                </Button>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                     <Button variant="outline" className="w-full border-dashed">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Componente
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56">
+                     {componentOptions.map(opt => (
+                        <DropdownMenuItem key={opt.type} onSelect={() => addComponent(opt.type)}>
+                            <opt.icon className="mr-2 h-4 w-4" />
+                            <span>{opt.label}</span>
+                        </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
 
             </CardContent>
         </Card>
@@ -235,3 +244,5 @@ function BlockWrapper({ title, children, onRemove }: { title: string, children: 
         </Card>
     );
 }
+
+    
