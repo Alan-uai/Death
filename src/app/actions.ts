@@ -31,9 +31,25 @@ async function postToBotApi(endpoint: string, body: object) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido.' }));
-        console.error(`Falha na API do Bot (${endpoint}):`, errorData);
-        throw new Error(`Falha na API do Bot: ${errorData.message}`);
+        let errorMessage = 'Ocorreu um erro desconhecido.';
+        try {
+            // Tente primeiro obter o texto, pois a resposta pode não ser JSON.
+            const errorText = await response.text();
+            try {
+                // Depois, tente fazer o parse do JSON.
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.message || errorMessage;
+            } catch (e) {
+                // Se o parse falhar, use o texto bruto como mensagem de erro.
+                errorMessage = errorText;
+            }
+        } catch (e) {
+             // Se houver erro ao ler a resposta.
+            errorMessage = `Falha ao ler a resposta de erro da API (${response.status} ${response.statusText})`;
+        }
+        
+        console.error(`Falha na API do Bot (${endpoint}):`, errorMessage);
+        throw new Error(`Falha na API do Bot: ${errorMessage}`);
     }
 
     return response.json();
@@ -170,4 +186,5 @@ export const getCustomCommandAction = cache(async (
       return null;
     }
 });
+
 
