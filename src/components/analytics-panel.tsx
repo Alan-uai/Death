@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -9,8 +10,10 @@ import {
   ChartLegend,
   ChartLegendContent,
 } from '@/components/ui/chart';
-import { BarChart, LineChart, Users, Bot, TrendingUp } from 'lucide-react';
-import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Users, Bot, TrendingUp } from 'lucide-react';
+import { Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, LineChart } from 'recharts';
+import { Skeleton } from './ui/skeleton';
+
 
 const memberData = [
   { month: 'Jan', members: 150 },
@@ -30,6 +33,53 @@ const commandData = [
 ];
 
 export function AnalyticsPanel() {
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    // This runs only on the client, after the component has mounted.
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return (
+      <div className="p-4 md:p-6 space-y-6">
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-8 w-1/3" />
+            <Skeleton className="h-4 w-2/3 mt-2" />
+          </CardHeader>
+          <CardContent>
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+              <Skeleton className="h-28 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-7 w-1/2" />
+              <Skeleton className="h-4 w-3/4 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+               <Skeleton className="h-7 w-1/2" />
+               <Skeleton className="h-4 w-3/4 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[300px] w-full" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-4 md:p-6 space-y-6">
       <Card>
