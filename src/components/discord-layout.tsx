@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bot, Cog, MessageSquare, Users, BarChart, Menu, Landmark } from 'lucide-react';
+import { ArrowLeft, Bot, Cog, MessageSquare, Users, BarChart, Menu, Landmark, Edit } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -15,14 +15,14 @@ import { getGuildChannelsAction } from '@/app/actions';
 import type { DiscordChannel, DiscordGuild } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { SettingsPanel } from './settings-panel';
-import { CustomCommandsPanel } from './custom-commands-panel';
+import { MessageBuilderPanel } from './message-builder-panel';
 import { ChannelManagerPanel } from './channel-manager-panel';
 import { BotPersonalityPanel } from './bot-personality-panel';
 import { AnalyticsPanel } from './analytics-panel';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 
 
-type Panel = 'chat' | 'settings' | 'commands' | 'channels' | 'personality' | 'analytics';
+type Panel = 'chat' | 'settings' | 'builder' | 'channels' | 'personality' | 'analytics';
 
 interface DiscordLayoutProps {
     guild: DiscordGuild;
@@ -31,10 +31,10 @@ interface DiscordLayoutProps {
 
 const navItems = [
     { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
-    { id: 'settings', label: 'Configurações', icon: Cog },
-    { id: 'commands', label: 'Comandos Customizados', icon: Users },
+    { id: 'builder', label: 'Message Builder', icon: Edit },
     { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
     { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
+    { id: 'settings', label: 'Configurações Gerais', icon: Cog },
     { id: 'analytics', label: 'Analytics', icon: BarChart },
 ];
 
@@ -46,7 +46,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const panelComponents: Record<Panel, React.FC<any>> = {
     chat: ChatPanel,
     settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
-    commands: (props) => <CustomCommandsPanel {...props} guildId={guild.id} />,
+    builder: (props) => <MessageBuilderPanel {...props} guildId={guild.id} />,
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
     personality: (props) => <BotPersonalityPanel {...props} guildId={guild.id} />,
     analytics: AnalyticsPanel,
