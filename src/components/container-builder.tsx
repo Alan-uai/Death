@@ -16,6 +16,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Checkbox } from './ui/checkbox';
+import { cn } from '@/lib/utils';
 
 type AccessoryButton = {
     type: 'button';
@@ -37,7 +39,9 @@ type Component = {
   type: 'text' | 'actionRow' | 'section' | 'mediaGallery' | 'file' | 'separator';
   content?: string; // For text, section
   accessory?: Accessory | null; // For section
-  // Other component-specific properties can be added here
+  // Separator specific
+  spacing?: 'normal' | 'large';
+  divider?: boolean;
 };
 
 
@@ -67,6 +71,10 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
         if (type === 'section') {
             newComponent.accessory = null;
             newComponent.content = '';
+        }
+        if (type === 'separator') {
+            newComponent.spacing = 'normal';
+            newComponent.divider = true;
         }
         setComponents(prev => [...prev, newComponent]);
     };
@@ -210,21 +218,44 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
                 <Input placeholder="URL do anexo (ex: attachment://arquivo.pdf)" />
             </BlockWrapper>
         ),
-        separator: ({ component }) => (
-            <BlockWrapper title="Separador" onRemove={() => removeComponent(component.id)}>
-                <div className="flex items-center gap-2">
-                     <Label>Espaçamento:</Label>
-                     <Select defaultValue="small">
-                        <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="small">Pequeno</SelectItem>
-                            <SelectItem value="medium">Médio</SelectItem>
-                            <SelectItem value="large">Grande</SelectItem>
-                        </SelectContent>
-                     </Select>
-                </div>
-            </BlockWrapper>
-        ),
+        separator: ({ component }) => {
+            const toggleSpacing = () => {
+                const newSpacing = component.spacing === 'normal' ? 'large' : 'normal';
+                handleComponentUpdate(component.id, { spacing: newSpacing });
+            };
+
+            const toggleDivider = (checked: boolean) => {
+                handleComponentUpdate(component.id, { divider: checked });
+            };
+
+            return (
+                <BlockWrapper title="Separador" onRemove={() => removeComponent(component.id)}>
+                    <div className={cn(
+                        "relative flex flex-col items-center justify-center transition-all",
+                        component.spacing === 'normal' ? 'h-10' : 'h-16'
+                    )}>
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2">
+                            <Checkbox 
+                                checked={component.divider} 
+                                onCheckedChange={toggleDivider} 
+                                aria-label="Mostrar/Ocultar linha"
+                            />
+                        </div>
+                        <div className="w-full px-12">
+                            {component.divider && <Separator />}
+                        </div>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            className="absolute top-1/2 -translate-y-1/2 h-6"
+                            onClick={toggleSpacing}
+                        >
+                            Clique para mudar a margem
+                        </Button>
+                    </div>
+                </BlockWrapper>
+            );
+        },
     };
 
     return (
@@ -286,5 +317,3 @@ function BlockWrapper({ title, children, onRemove }: { title: string, children: 
         </Card>
     );
 }
-
-    
