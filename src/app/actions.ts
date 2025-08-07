@@ -1,4 +1,3 @@
-
 'use server';
 
 import { cache } from 'react';
@@ -66,11 +65,7 @@ export async function saveChannelConfigAction(guildId: string, config: { mode: s
     const payload = {
         guildId,
         config: {
-            channelManagement: {
-                mode: config.mode,
-                suggestions_enabled: config.suggestions.enabled,
-                reports_enabled: config.reports.enabled,
-            }
+            channelManagement: config
         }
     };
     return postToBotApi('config-generic', payload);
@@ -183,17 +178,17 @@ export const getGuildChannelsAction = cache(async (
     }
 });
 
-export const getCustomCommandAction = cache(async (
-  commandId: string
-): Promise<CustomCommand | null> => {
+export const getGuildConfigAction = cache(async (
+  guildId: string
+): Promise<any | null> => {
    if (!db) {
-      console.warn('Firestore não está inicializado. Retornando null para o comando customizado.');
+      console.warn('Firestore não está inicializado. Retornando null para a configuração do servidor.');
       return null;
     }
-    const docSnap = await db.collection('custom_commands').doc(commandId).get();
+    const docSnap = await db.collection('guild_configs').doc(guildId).get();
 
     if (docSnap.exists) {
-      return docSnap.data() as CustomCommand;
+      return docSnap.data();
     } else {
       return null;
     }

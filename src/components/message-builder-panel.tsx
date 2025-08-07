@@ -6,24 +6,58 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle, Trash2, GripVertical, Bot } from 'lucide-react';
-import { EmbedBuilder } from './embed-builder';
-import { ActionRowBuilder } from './action-row-builder';
-import { Textarea } from './ui/textarea';
+import { Bot, Loader2 } from 'lucide-react';
 import { MessageEditorPanel } from './message-editor-panel';
+import { useToast } from '@/hooks/use-toast';
+import type { CustomCommand } from '@/lib/types';
+import { saveCommandConfigAction } from '@/app/actions';
 
 export function MessageBuilderPanel({ guildId }: { guildId: string }) {
   const [commandName, setCommandName] = useState('');
   const [commandDescription, setCommandDescription] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
-  const handleSave = () => {
-    // Logic to save the entire message structure
-    console.log({
-      commandName,
-      commandDescription,
-      // components state would be managed inside MessageEditorPanel
-    });
-    // This will call a server action in the future
+  const handleSave = async (messageData: any) => {
+    if (!commandName.trim() || !commandDescription.trim()) {
+        toast({
+            variant: 'destructive',
+            title: 'Erro de Validação',
+            description: 'O nome e a descrição do comando são obrigatórios.',
+        });
+        return;
+    }
+    
+    setIsSaving(true);
+    try {
+        const command: CustomCommand = {
+            id: commandName.trim().toLowerCase(), // Use name as ID for simplicity
+            name: commandName.trim().toLowerCase(),
+            description: commandDescription.trim(),
+            responseType: messageData.mode,
+            response: {
+                content: messageData.textContent,
+                embed: messageData.mode === 'embed' ? messageData.embed : undefined,
+                container: messageData.mode === 'container' ? messageData.components : undefined,
+            }
+        };
+
+        await saveCommandConfigAction(guildId, command);
+
+        toast({
+            title: 'Sucesso!',
+            description: `Comando /${command.name} salvo com sucesso.`,
+        });
+    } catch (error) {
+        console.error("Falha ao salvar comando customizado:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Erro ao Salvar',
+            description: 'Não foi possível salvar o comando customizado.',
+        });
+    } finally {
+        setIsSaving(false);
+    }
   };
   
   return (
@@ -39,7 +73,7 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="command-name">Nome do Comando (sem /)</Label>
-              <Input id="command-name" value={commandName} onChange={(e) => setCommandName(e.target.value)} placeholder="bemvindo" />
+              <Input id="command-name" value={commandName} onChange={(e) => setCommandName(e.target.value.replace(/\s+/g, '-'))} placeholder="bemvindo" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="command-desc">Descrição do Comando</Label>
@@ -49,14 +83,9 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
         </CardContent>
       </Card>
       
-      <MessageEditorPanel />
+      {/* O MessageEditorPanel agora gerencia seu próprio estado e passa os dados para o handleSave */}
+      <MessageEditorPanel onSave={handleSave} guildId={guildId} isSaving={isSaving} />
 
-      <div className="flex justify-end mt-6">
-          <Button onClick={handleSave}>
-              <Bot className="mr-2 h-4 w-4" />
-              Salvar Comando
-          </Button>
-        </div>
     </div>
   );
 }

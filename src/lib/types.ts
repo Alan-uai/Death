@@ -32,11 +32,9 @@ export const CustomCommandSchema = z.object({
   description: z.string().min(1, 'A descrição é obrigatória.'),
   responseType: z.enum(['container', 'embed']),
   response: z.object({
-    container: z.string().optional(),
-    embed: z.object({
-      title: z.string().optional(),
-      description: z.string().optional(),
-    }).optional(),
+    content: z.string().optional(),
+    embed: z.any().optional(), // Using any() for simplicity, can be a detailed Zod schema for an embed
+    container: z.any().optional(), // Using any() for simplicity, can be a detailed Zod schema for V2 components
   }),
 });
 export type CustomCommand = z.infer<typeof CustomCommandSchema>;

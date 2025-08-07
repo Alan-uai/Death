@@ -8,7 +8,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 import { MessageEditorPanel } from "./message-editor-panel";
-import { Card, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Card, CardDescription, CardHeader, CardTitle, CardContent, CardFooter } from "./ui/card";
 import { Button } from "./ui/button";
 
 const responseCategories = {
@@ -30,6 +30,10 @@ const responseCategories = {
 }
 
 export function BotResponsesPanel({ guildId }: { guildId: string }) {
+    // In a real application, you would fetch the saved state for each message
+    // from Firestore and pass it down to the MessageEditorPanel.
+    // For now, this is a placeholder structure.
+    
     return (
         <div className="p-4 md:p-6 space-y-6">
              <Card className="border-none shadow-none bg-transparent">
@@ -53,11 +57,8 @@ export function BotResponsesPanel({ guildId }: { guildId: string }) {
                                     <CardTitle className="text-xl">{response.label}</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <MessageEditorPanel messageId={response.id} />
+                                    <MessageEditorPanel messageId={response.id} guildId={guildId} />
                                 </CardContent>
-                                <CardFooter className="flex justify-end">
-                                    <Button>Salvar Resposta: {response.label}</Button>
-                                </CardFooter>
                             </Card>
                            ))}
                         </AccordionContent>

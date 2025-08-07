@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from './ui/button';
 import { PlusCircle, Trash2, GripVertical, FileText, Image as ImageIcon, ChevronDown, Type, Rows, Link2 } from 'lucide-react';
@@ -11,7 +11,13 @@ import { Textarea } from './ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
 
+// Simplified types for UI representation
 type Component = { id: string; type: 'text' | 'actionRow' | 'section' | 'mediaGallery' | 'file' | 'separator' };
+
+interface ContainerBuilderProps {
+  initialComponents?: Component[];
+  onUpdate: (components: Component[]) => void;
+}
 
 // A simplified representation of discord.js builders for the UI
 const componentRenderers: Record<Component['type'], React.FC<{ componentId: string, onRemove: (id: string) => void }>> = {
@@ -112,8 +118,12 @@ const componentOptions = [
 ] as const;
 
 
-export function ContainerBuilder() {
-    const [components, setComponents] = useState<Component[]>([]);
+export function ContainerBuilder({ initialComponents = [], onUpdate }: ContainerBuilderProps) {
+    const [components, setComponents] = useState<Component[]>(initialComponents);
+
+    useEffect(() => {
+        onUpdate(components);
+    }, [components, onUpdate]);
 
     const addComponent = (type: Component['type']) => {
         setComponents(prev => [...prev, { id: `${type}-${Date.now()}`, type }]);
@@ -137,6 +147,9 @@ export function ContainerBuilder() {
                         const Renderer = componentRenderers[comp.type];
                         return <Renderer key={comp.id} componentId={comp.id} onRemove={removeComponent} />;
                     })}
+                     {components.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">Nenhum componente adicionado ainda.</p>
+                    )}
                 </div>
 
                 <Card className="border-dashed">

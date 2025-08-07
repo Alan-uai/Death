@@ -32,7 +32,7 @@ interface DiscordLayoutProps {
 
 const navItems = [
     { id: 'chat', label: 'Simulador de Chat', icon: MessageSquare },
-    { id: 'builder', label: 'Editor de Mensagens', icon: Edit },
+    { id: 'builder', label: 'Editor de Comandos', icon: Edit },
     { id: 'responses', label: 'Respostas do Bot', icon: Rss },
     { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
     { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
@@ -48,7 +48,7 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const panelComponents: Record<Panel, React.FC<any>> = {
     chat: ChatPanel,
     builder: (props) => <MessageBuilderPanel {...props} guildId={guild.id} />,
-    responses: BotResponsesPanel,
+    responses: (props) => <BotResponsesPanel {...props} guildId={guild.id} />,
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
     personality: (props) => <BotPersonalityPanel {...props} guildId={guild.id} />,
     settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
