@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
-import { Label } from './ui/label';
 import { PlusCircle, Trash2, GripVertical, Settings, Smile, Edit, Lock, Palette } from 'lucide-react';
 import {
   DropdownMenu,
@@ -89,59 +88,53 @@ export function ActionRowBuilder() {
                 <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab opacity-50 hover:opacity-100" />
                 
                 <div className="flex-grow">
-                    <Button 
-                        className={buttonStyleClasses[button.style]}
-                        disabled={button.disabled}
-                    >
-                        {button.emoji && <span className="mr-2">{button.emoji}</span>}
-                        {button.label}
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                          <Button 
+                              className={buttonStyleClasses[button.style]}
+                              disabled={button.disabled}
+                          >
+                              {button.emoji && <span className="mr-2">{button.emoji}</span>}
+                              {button.label}
+                          </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                          <DropdownMenuItem onSelect={() => openLabelEditor(button)}>
+                              <Edit className="mr-2 h-4 w-4" />
+                              Mudar Label
+                          </DropdownMenuItem>
+                           <DropdownMenuItem disabled>
+                              <Smile className="mr-2 h-4 w-4" />
+                              Definir Emoji
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { disabled: !button.disabled })}>
+                              <Lock className="mr-2 h-4 w-4" />
+                              {button.disabled ? 'Habilitar' : 'Desabilitar'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                           <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'primary' })}>
+                              <Palette className="mr-2 h-4 w-4 text-indigo-500" />
+                              Primary
+                          </DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'secondary' })}>
+                              <Palette className="mr-2 h-4 w-4 text-gray-500" />
+                              Secondary
+                          </DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'success' })}>
+                              <Palette className="mr-2 h-4 w-4 text-green-500" />
+                              Success
+                          </DropdownMenuItem>
+                           <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'danger' })}>
+                              <Palette className="mr-2 h-4 w-4 text-red-500" />
+                              Danger
+                          </DropdownMenuItem>
+                      </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
                 
-                <div className="flex items-center gap-1">
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <Settings className="h-4 w-4" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                            <DropdownMenuItem onSelect={() => openLabelEditor(button)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Mudar Label
-                            </DropdownMenuItem>
-                             <DropdownMenuItem disabled>
-                                <Smile className="mr-2 h-4 w-4" />
-                                Definir Emoji
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { disabled: !button.disabled })}>
-                                <Lock className="mr-2 h-4 w-4" />
-                                {button.disabled ? 'Habilitar' : 'Desabilitar'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                             <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'primary' })}>
-                                <Palette className="mr-2 h-4 w-4 text-indigo-500" />
-                                Set as Main Action
-                            </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'secondary' })}>
-                                <Palette className="mr-2 h-4 w-4 text-gray-500" />
-                                Set as Secondary Action
-                            </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'success' })}>
-                                <Palette className="mr-2 h-4 w-4 text-green-500" />
-                                Set as Confirmation
-                            </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => handleButtonUpdate(button.id, { style: 'danger' })}>
-                                <Palette className="mr-2 h-4 w-4 text-red-500" />
-                                Set as Destructive
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeButton(button.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => removeButton(button.id)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
             </Card>
           ))}
         </div>
@@ -149,7 +142,6 @@ export function ActionRowBuilder() {
           <PlusCircle className="mr-2 h-4 w-4" /> Adicionar Botão
         </Button>
         
-        {/* Hidden Dialog for editing label */}
         <AlertDialog open={isLabelAlertOpen} onOpenChange={setIsLabelAlertOpen}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -175,5 +167,3 @@ export function ActionRowBuilder() {
     </Card>
   );
 }
-
-    
