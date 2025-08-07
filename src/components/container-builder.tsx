@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from './ui/button';
-import { PlusCircle, Trash2, GripVertical, FileText, Image as ImageIcon, ChevronDown, Type, Rows, Link2 } from 'lucide-react';
+import { PlusCircle, Trash2, GripVertical, FileText, Image as ImageIcon, ChevronDown, Type, Rows, Link2, CaseUpper, MessageSquare, Palette } from 'lucide-react';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Textarea } from './ui/textarea';
@@ -20,14 +20,23 @@ import {
 type AccessoryButton = {
     type: 'button';
     label: string;
-    style: 'primary' | 'secondary' | 'success' | 'danger';
+    style: 'primary' | 'secondary' | 'success' | 'danger' | 'link';
+    url?: string;
 };
+
+type AccessoryImage = {
+    type: 'image';
+    url: string;
+}
+
+type Accessory = AccessoryButton | AccessoryImage;
+
 
 type Component = {
   id: string;
   type: 'text' | 'actionRow' | 'section' | 'mediaGallery' | 'file' | 'separator';
   content?: string; // For text, section
-  accessory?: AccessoryButton | null; // For section
+  accessory?: Accessory | null; // For section
   // Other component-specific properties can be added here
 };
 
@@ -42,8 +51,8 @@ const componentOptions = [
     { type: 'actionRow', label: 'Action Row', icon: Rows },
     { type: 'section', label: 'Section', icon: FileText },
     { type: 'mediaGallery', label: 'Media Gallery', icon: ImageIcon },
-    { type: 'file', label: 'File', icon: Link2 },
-    { type: 'separator', label: 'Separator', icon: Separator },
+    { type: 'file', label: 'File (Anexo)', icon: Link2 },
+    { type: 'separator', label: 'Separador', icon: () => <Separator className="my-0" /> },
 ] as const;
 
 export function ContainerBuilder({ initialComponents = [], onUpdate }: ContainerBuilderProps) {
@@ -107,53 +116,86 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
         ),
         section: ({ component }) => (
             <BlockWrapper title="Section" onRemove={() => removeComponent(component.id)}>
-                <Textarea 
-                  placeholder="Conteúdo do texto da seção..."
-                  value={component.content || ''}
-                  onChange={(e) => handleComponentUpdate(component.id, { content: e.target.value })}
-                />
-                <div className="flex items-center gap-2 mt-2">
-                    <Label>Accessory:</Label>
-                    {!component.accessory ? (
-                        <>
-                            <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleComponentUpdate(component.id, { accessory: { type: 'button', label: 'Novo Botão', style: 'secondary' }})}
-                            >
-                                Adicionar Botão
-                            </Button>
-                            <Button variant="outline" size="sm" disabled>Adicionar Imagem</Button>
-                        </>
-                    ) : (
-                        <Card className="p-2 bg-secondary/50 w-full">
-                            <div className="flex items-center justify-between">
-                                <Label className="text-sm">Botão Acessório</Label>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleComponentUpdate(component.id, { accessory: null })}>
+                 <div className="flex gap-4">
+                    <Textarea 
+                        placeholder="Conteúdo do texto da seção..."
+                        className="flex-grow"
+                        value={component.content || ''}
+                        onChange={(e) => handleComponentUpdate(component.id, { content: e.target.value })}
+                    />
+                    <div className="flex-shrink-0 w-48 space-y-2">
+                        <Label>Acessório</Label>
+                        {!component.accessory ? (
+                             <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" className="w-full">
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Adicionar...
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent>
+                                    <DropdownMenuItem onSelect={() => handleComponentUpdate(component.id, { accessory: { type: 'button', label: 'Clique', style: 'secondary' }})}>
+                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                        Botão
+                                    </DropdownMenuItem>
+                                     <DropdownMenuItem onSelect={() => handleComponentUpdate(component.id, { accessory: { type: 'button', label: 'Link', style: 'link', url: '' }})}>
+                                        <Link2 className="mr-2 h-4 w-4" />
+                                        Botão com Link
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleComponentUpdate(component.id, { accessory: { type: 'image', url: '' }})}>
+                                        <ImageIcon className="mr-2 h-4 w-4" />
+                                        Imagem
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        ) : (
+                            <Card className="p-2 bg-secondary/50 w-full relative">
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-6 w-6" onClick={() => handleComponentUpdate(component.id, { accessory: null })}>
                                     <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3 mt-2">
-                                <Input 
-                                    placeholder="Label do Botão"
-                                    value={component.accessory.label}
-                                    onChange={(e) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, label: e.target.value }})}
-                                />
-                                <Select 
-                                    value={component.accessory.style}
-                                    onValueChange={(value) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, style: value as any }})}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="primary">Primary</SelectItem>
-                                        <SelectItem value="secondary">Secondary</SelectItem>
-                                        <SelectItem value="success">Success</SelectItem>
-                                        <SelectItem value="danger">Danger</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </Card>
-                    )}
+                                {component.accessory.type === 'image' && (
+                                     <div className="space-y-2">
+                                        <Label className="text-sm">Imagem</Label>
+                                        <Input
+                                            placeholder="URL da imagem"
+                                            value={component.accessory.url}
+                                            onChange={(e) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, url: e.target.value }})}
+                                        />
+                                    </div>
+                                )}
+                                {component.accessory.type === 'button' && (
+                                    <div className="space-y-2">
+                                        <Label className="text-sm">Botão</Label>
+                                        <Input 
+                                            placeholder="Label"
+                                            value={component.accessory.label}
+                                            onChange={(e) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, label: e.target.value }})}
+                                        />
+                                        <Select 
+                                            value={component.accessory.style}
+                                            onValueChange={(value) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, style: value as any }})}
+                                        >
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="primary">Primary</SelectItem>
+                                                <SelectItem value="secondary">Secondary</SelectItem>
+                                                <SelectItem value="success">Success</SelectItem>
+                                                <SelectItem value="danger">Danger</SelectItem>
+                                                <SelectItem value="link">Link</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        {component.accessory.style === 'link' && (
+                                            <Input 
+                                                placeholder="URL do Link"
+                                                value={component.accessory.url}
+                                                onChange={(e) => handleComponentUpdate(component.id, { accessory: { ...component.accessory!, url: e.target.value }})}
+                                            />
+                                        )}
+                                    </div>
+                                )}
+                            </Card>
+                        )}
+                    </div>
                 </div>
             </BlockWrapper>
         ),
@@ -164,20 +206,20 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
             </BlockWrapper>
         ),
         file: ({ component }) => (
-            <BlockWrapper title="File" onRemove={() => removeComponent(component.id)}>
+            <BlockWrapper title="File (Anexo)" onRemove={() => removeComponent(component.id)}>
                 <Input placeholder="URL do anexo (ex: attachment://arquivo.pdf)" />
             </BlockWrapper>
         ),
         separator: ({ component }) => (
-            <BlockWrapper title="Separator" onRemove={() => removeComponent(component.id)}>
+            <BlockWrapper title="Separador" onRemove={() => removeComponent(component.id)}>
                 <div className="flex items-center gap-2">
-                     <Label>Spacing:</Label>
+                     <Label>Espaçamento:</Label>
                      <Select defaultValue="small">
                         <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="small">Small</SelectItem>
-                            <SelectItem value="medium">Medium</SelectItem>
-                            <SelectItem value="large">Large</SelectItem>
+                            <SelectItem value="small">Pequeno</SelectItem>
+                            <SelectItem value="medium">Médio</SelectItem>
+                            <SelectItem value="large">Grande</SelectItem>
                         </SelectContent>
                      </Select>
                 </div>
