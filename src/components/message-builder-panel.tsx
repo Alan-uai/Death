@@ -19,7 +19,8 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
   const { toast } = useToast();
 
   const handleSave = async (messageData: any) => {
-    if (!commandName.trim() || !commandDescription.trim()) {
+    const finalCommandName = commandName.trim().toLowerCase();
+    if (!finalCommandName || !commandDescription.trim()) {
         toast({
             variant: 'destructive',
             title: 'Erro de Validação',
@@ -31,8 +32,8 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
     setIsSaving(true);
     try {
         const command: CustomCommand = {
-            id: commandName.trim().toLowerCase(), // Use name as ID for simplicity
-            name: commandName.trim().toLowerCase(),
+            id: finalCommandName,
+            name: finalCommandName,
             description: commandDescription.trim(),
             responseType: messageData.mode,
             response: {
@@ -41,6 +42,19 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
                 container: messageData.mode === 'container' ? messageData.container : undefined,
             }
         };
+
+        // Modify button customIds before saving
+        if (command.responseType === 'container' && command.response.container) {
+            command.response.container.forEach((component: any) => {
+                if (component.type === 'actionRow' && component.components) {
+                    component.components.forEach((subComp: any) => {
+                        if (subComp.type === 'button' && subComp.action) {
+                            subComp.customId = `customAction_${finalCommandName}_${subComp.action.name}`;
+                        }
+                    });
+                }
+            });
+        }
 
         await saveCommandConfigAction(guildId, command);
 
@@ -83,8 +97,13 @@ export function MessageBuilderPanel({ guildId }: { guildId: string }) {
         </CardContent>
       </Card>
       
-      {/* O MessageEditorPanel agora gerencia seu próprio estado e passa os dados para o handleSave */}
-      <MessageEditorPanel guildId={guildId} onSave={handleSave} isSaving={isSaving} saveButtonText="Salvar Comando" />
+      <MessageEditorPanel 
+        guildId={guildId} 
+        onSave={handleSave} 
+        isSaving={isSaving} 
+        saveButtonText="Salvar Comando"
+        commandName={commandName}
+       />
 
     </div>
   );

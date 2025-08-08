@@ -32,13 +32,23 @@ import { Textarea } from './ui/textarea';
 import { Switch } from './ui/switch';
 import { MessageEditorPanel } from './message-editor-panel';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
-
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from './ui/select';
 
 // --- Type Definitions ---
 
+type ActionType = 'REPLY' | 'ASSIGN_ROLE' | 'SEND_DM';
+
 type BotAction = {
-    type: 'reply';
-    message: any; // This will hold the data from MessageEditorPanel
+    name: string;
+    type: ActionType;
+    parameters: {
+        // For REPLY
+        message?: any; 
+        // For ASSIGN_ROLE
+        roleId?: string;
+        // For SEND_DM
+        dmMessage?: any;
+    }
 }
 
 type ActionButton = {
@@ -50,6 +60,7 @@ type ActionButton = {
   emoji?: string;
   url?: string;
   action?: BotAction;
+  customId?: string;
 };
 
 type SelectMenuOption = {
@@ -78,6 +89,7 @@ type ActionRowComponent = ActionButton | ActionSelectMenu;
 interface ActionRowBuilderProps {
     initialComponents?: ActionRowComponent[];
     onUpdate: (components: ActionRowComponent[]) => void;
+    commandName?: string;
 }
 
 
@@ -89,11 +101,10 @@ const buttonStyleClasses: Record<ActionButton['style'], string> = {
     link: 'bg-transparent text-blue-400 hover:underline p-0',
 };
 
-export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRowBuilderProps) {
+export function ActionRowBuilder({ initialComponents = [], onUpdate, commandName }: ActionRowBuilderProps) {
   const [components, setComponents] = useState<ActionRowComponent[]>(initialComponents);
   const [editingComponent, setEditingComponent] = useState<ActionButton | SelectMenuOption | null>(null);
   
-  // State for dialogs
   const [isLabelAlertOpen, setIsLabelAlertOpen] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [isActionEditorOpen, setIsActionEditorOpen] = useState(false);
@@ -144,21 +155,16 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
       setIsActionEditorOpen(true);
   }
 
-  const saveAction = (actionData: any) => {
+  const saveAction = (actionData: BotAction) => {
       if (!editingComponent) return;
-
-      const newAction: BotAction = {
-          type: 'reply',
-          message: actionData
-      };
       
       if ('style' in editingComponent) { // It's an ActionButton
-          handleComponentUpdate(editingComponent.id, { action: newAction });
+          handleComponentUpdate(editingComponent.id, { action: actionData });
       } else { // It's a SelectMenuOption
          const updatedComponents = components.map(c => {
              if (c.type === 'selectMenu') {
                  const newOptions = c.options.map(opt => 
-                    opt.id === editingComponent.id ? { ...opt, action: newAction } : opt
+                    opt.id === editingComponent.id ? { ...opt, action: actionData } : opt
                  );
                  return { ...c, options: newOptions };
              }
@@ -299,31 +305,126 @@ export function ActionRowBuilder({ initialComponents = [], onUpdate }: ActionRow
             </AlertDialogContent>
         </AlertDialog>
 
-        <Dialog open={isActionEditorOpen} onOpenChange={setIsActionEditorOpen}>
+        <ActionEditorDialog
+            isOpen={isActionEditorOpen}
+            onOpenChange={setIsActionEditorOpen}
+            initialAction={editingComponent?.action}
+            onSave={saveAction}
+            onClose={() => setEditingComponent(null)}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+// --- Action Editor Dialog ---
+interface ActionEditorDialogProps {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    initialAction?: BotAction;
+    onSave: (action: BotAction) => void;
+    onClose: () => void;
+}
+
+function ActionEditorDialog({ isOpen, onOpenChange, initialAction, onSave, onClose }: ActionEditorDialogProps) {
+    const [action, setAction] = useState<Partial<BotAction>>(initialAction || { type: 'REPLY', parameters: {} });
+
+    const handleSave = () => {
+        // Basic validation
+        if (!action.name || !action.type) {
+            alert("Action Name and Type are required.");
+            return;
+        }
+        onSave(action as BotAction);
+    };
+    
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            onClose();
+        }
+        onOpenChange(open);
+    }
+
+    return (
+         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle>Editor de Ação</DialogTitle>
                     <DialogDescription>
-                        Configure o que o bot deve fazer quando este componente for clicado.
-                        A ação principal é "Responder com uma mensagem".
+                        Configure o que o bot deve fazer quando este componente for usado.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex-grow overflow-y-auto pr-6 -mr-6">
-                    {editingComponent && (
-                        <MessageEditorPanel 
-                            guildId="DUMMY_GUILD_ID_FOR_ACTION_EDITOR"
-                            onSave={saveAction}
-                            saveButtonText="Salvar Ação"
-                            initialData={editingComponent.action?.message || {}}
-                        />
+                <div className="flex-grow overflow-y-auto pr-6 -mr-6 space-y-4 py-4">
+                    <div className='grid grid-cols-2 gap-4'>
+                         <div className="space-y-2">
+                            <Label htmlFor="action-name">Nome da Ação (ID)</Label>
+                            <Input
+                                id="action-name"
+                                placeholder="ex: dar_cargo_vip"
+                                value={action.name || ''}
+                                onChange={(e) => setAction(a => ({ ...a, name: e.target.value.replace(/\s+/g, '_') }))}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="action-type">Tipo de Ação</Label>
+                            <Select
+                                value={action.type}
+                                onValueChange={(type: ActionType) => setAction(a => ({ ...a, type, parameters: {} }))}
+                            >
+                                <SelectTrigger id="action-type">
+                                    <SelectValue placeholder="Selecione um tipo de ação" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="REPLY">Responder com Mensagem</SelectItem>
+                                    <SelectItem value="ASSIGN_ROLE">Atribuir Cargo</SelectItem>
+                                    <SelectItem value="SEND_DM">Enviar Mensagem Direta (DM)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+
+                    {/* --- Parameter Editors --- */}
+                    {action.type === 'REPLY' && (
+                        <div>
+                             <Label className="text-base">Resposta do Bot</Label>
+                             <MessageEditorPanel 
+                                guildId="DUMMY_GUILD_ID"
+                                initialData={action.parameters?.message}
+                                onSave={(messageData) => setAction(a => ({...a, parameters: { ...a.parameters, message: messageData } }))}
+                            />
+                        </div>
+                    )}
+                    {action.type === 'ASSIGN_ROLE' && (
+                         <div className="space-y-2 rounded-lg border p-4">
+                            <Label htmlFor="role-id">ID do Cargo</Label>
+                            <Input
+                                id="role-id"
+                                placeholder="Cole o ID do cargo aqui"
+                                value={action.parameters?.roleId || ''}
+                                onChange={(e) => setAction(a => ({...a, parameters: { ...a.parameters, roleId: e.target.value }}))}
+                             />
+                             <p className="text-xs text-muted-foreground">Você pode obter o ID de um cargo ativando o Modo de Desenvolvedor no Discord.</p>
+                        </div>
+                    )}
+                     {action.type === 'SEND_DM' && (
+                        <div>
+                             <Label className="text-base">Mensagem a ser enviada na DM</Label>
+                             <MessageEditorPanel 
+                                guildId="DUMMY_GUILD_ID"
+                                initialData={action.parameters?.dmMessage}
+                                onSave={(messageData) => setAction(a => ({...a, parameters: { ...a.parameters, dmMessage: messageData } }))}
+                            />
+                        </div>
                     )}
                 </div>
+                 <DialogFooter>
+                    <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
+                    <Button onClick={handleSave}>Salvar Ação</Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
+    )
 
-      </CardContent>
-    </Card>
-  );
 }
 
 
@@ -503,8 +604,8 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave, onEdit
     }
 
     const handleEditAction = () => {
-        onOpenChange(false);
         onEditAction(currentOption);
+        onOpenChange(false);
     }
 
     return (
@@ -547,5 +648,3 @@ function SelectOptionEditorDialog({ isOpen, onOpenChange, option, onSave, onEdit
         </AlertDialog>
     )
 }
-
-    

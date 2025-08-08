@@ -17,10 +17,11 @@ type EditorMode = 'embed' | 'container';
 interface MessageEditorPanelProps {
     messageId?: string;
     guildId: string;
-    onSave?: (data: any) => Promise<void> | void; // Can be sync or async
+    onSave?: (data: any) => Promise<void> | void;
     isSaving?: boolean;
     saveButtonText?: string;
-    initialData?: any; // To prepopulate the editor, e.g. for an action
+    initialData?: any;
+    commandName?: string;
 }
 
 export function MessageEditorPanel({ 
@@ -29,7 +30,8 @@ export function MessageEditorPanel({
     onSave, 
     isSaving = false,
     saveButtonText = "Salvar",
-    initialData
+    initialData,
+    commandName
 }: MessageEditorPanelProps) {
     const [mode, setMode] = useState<EditorMode>('embed');
     const [textContent, setTextContent] = useState('');
@@ -51,7 +53,7 @@ export function MessageEditorPanel({
     }
 
     const loadInitialData = useCallback((data: any) => {
-        if (data) {
+        if (data && Object.keys(data).length > 0) {
             setMode(data.mode || 'embed');
             setTextContent(data.textContent || '');
             if (data.mode === 'embed' && data.embed) {
@@ -67,9 +69,7 @@ export function MessageEditorPanel({
         }
     }, []);
 
-    // Load existing data from Firestore if messageId is provided
     useEffect(() => {
-        // If initialData is provided, it takes precedence (e.g., for action editor)
         if (initialData) {
             loadInitialData(initialData);
             setIsLoading(false);
@@ -127,7 +127,6 @@ export function MessageEditorPanel({
                     <Skeleton className="h-96 w-full" />
                 </div>
             </CardContent>
-             {/* Render footer only if it's a command builder or action editor */}
              {onSave && (
                 <CardFooter className="flex justify-end mt-6">
                     <Skeleton className="h-10 w-36" />
@@ -178,12 +177,12 @@ export function MessageEditorPanel({
                         <ContainerBuilder
                             initialComponents={containerComponents}
                             onUpdate={setContainerComponents}
+                            commandName={commandName}
                         />
                     </TabsContent>
                 </div>
             </CardContent>
-            {/* Render footer with save button only if it has the onSave prop */}
-             {onSave && (
+            {onSave && (
                 <CardFooter className="flex justify-end mt-6">
                     <Button onClick={handleSaveClick} disabled={isSaving}>
                         {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

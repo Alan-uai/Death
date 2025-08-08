@@ -51,6 +51,7 @@ type Component = {
 interface ContainerBuilderProps {
   initialComponents?: Component[];
   onUpdate: (components: Component[]) => void;
+  commandName?: string;
 }
 
 const componentOptions = [
@@ -62,7 +63,7 @@ const componentOptions = [
     { type: 'separator', label: 'Separador', icon: () => <Separator className="my-0" /> },
 ] as const;
 
-export function ContainerBuilder({ initialComponents = [], onUpdate }: ContainerBuilderProps) {
+export function ContainerBuilder({ initialComponents = [], onUpdate, commandName }: ContainerBuilderProps) {
     const [components, setComponents] = useState<Component[]>(initialComponents);
 
     useEffect(() => {
@@ -108,6 +109,7 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
                 <ActionRowBuilder 
                     initialComponents={component.components}
                     onUpdate={(newComponents) => handleComponentUpdate(component.id, { components: newComponents })}
+                    commandName={commandName}
                 />
             </BlockWrapper>
         ),
@@ -225,8 +227,8 @@ export function ContainerBuilder({ initialComponents = [], onUpdate }: Container
                     )}>
                         <div className="absolute left-2 top-1/2 -translate-y-1/2">
                             <Checkbox 
-                                checked={component.divider} 
-                                onCheckedChange={toggleDivider} 
+                                checked={!!component.divider} 
+                                onCheckedChange={(checked) => toggleDivider(Boolean(checked))} 
                                 aria-label="Mostrar/Ocultar linha"
                             />
                         </div>
@@ -306,5 +308,3 @@ function BlockWrapper({ title, children, onRemove }: { title: string, children: 
         </Card>
     );
 }
-
-    
