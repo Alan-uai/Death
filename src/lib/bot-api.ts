@@ -38,14 +38,3 @@ async function postToBotApi(endpoint: string, body: object) {
 
     return response.json();
 }
-
-
-// Esta função é chamada pelo lado do cliente, mas a chamada segura é feita por uma Server Action.
-// A lógica real de `setOwner` com segredo foi movida para `actions.ts`.
-// Esta função permanece para compatibilidade, mas a chamada segura real está na Server Action.
-export async function setOwner(userId: string) {
-    // A implementação real e segura está em `setOwnerAction` em `src/app/actions.ts`
-    console.warn("A função `setOwner` em `bot-api.ts` não deve ser chamada diretamente para operações seguras. Use `setOwnerAction`.");
-    // Retornando uma promessa resolvida para evitar quebrar o fluxo existente que pode ainda chamá-la.
-    return Promise.resolve();
-}

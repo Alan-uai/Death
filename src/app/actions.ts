@@ -80,9 +80,15 @@ export async function saveGenericConfigAction(guildId: string, config: object) {
     return postToBotApi('config-generic', payload);
 }
 
-export async function setOwnerAction(userId: string) {
-    // Este endpoint já existe no bot.
-    return postToBotApi('set-owner', { userId });
+export async function setOwnerAction(guildId: string, userId: string) {
+    // Usa o endpoint genérico para definir o ownerId.
+    const payload = {
+        guildId,
+        config: {
+            ownerId: userId
+        }
+    };
+    return postToBotApi('config-generic', payload);
 }
 
 

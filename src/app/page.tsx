@@ -116,7 +116,7 @@ export default function Home() {
           return;
       }
       try {
-          await setOwnerAction(user.id);
+          await setOwnerAction(guildId, user.id);
           const inviteUrl = `https://discord.com/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&guild_id=${guildId}&permissions=${DISCORD_PERMISSIONS}&scope=bot%20applications.commands`;
           window.open(inviteUrl, '_blank');
       } catch (error) {
