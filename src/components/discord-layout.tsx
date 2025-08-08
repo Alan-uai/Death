@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bot, Cog, MessageSquare, BarChart, Menu, Landmark, Edit, Rss } from 'lucide-react';
+import { ArrowLeft, Bot, Cog, MessageSquare, Menu, Landmark, Edit, Rss } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -18,12 +18,11 @@ import { SettingsPanel } from './settings-panel';
 import { MessageBuilderPanel } from './message-builder-panel';
 import { ChannelManagerPanel } from './channel-manager-panel';
 import { BotPersonalityPanel } from './bot-personality-panel';
-import { AnalyticsPanel } from './analytics-panel';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { BotResponsesPanel } from './bot-responses-panel';
 
 
-type Panel = 'chat' | 'builder' | 'channels' | 'personality' | 'settings' | 'analytics' | 'responses';
+type Panel = 'chat' | 'builder' | 'channels' | 'personality' | 'settings' | 'responses';
 
 interface DiscordLayoutProps {
     guild: DiscordGuild;
@@ -37,7 +36,6 @@ const navItems = [
     { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
     { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
     { id: 'settings', label: 'Configurações Gerais', icon: Cog },
-    { id: 'analytics', label: 'Analytics', icon: BarChart },
 ];
 
 export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
@@ -52,7 +50,6 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
     personality: (props) => <BotPersonalityPanel {...props} guildId={guild.id} />,
     settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
-    analytics: AnalyticsPanel,
   };
 
   useEffect(() => {
