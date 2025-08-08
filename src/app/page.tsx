@@ -2,9 +2,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { DiscordLayout } from '@/components/discord-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DiscordLogoIcon } from '@/components/discord-logo-icon';
 import { getManageableGuildsAction, getCurrentUserAction, setOwnerAction } from '@/app/actions';
 import type { DiscordGuild, DiscordUser } from '@/lib/types';
@@ -12,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ArrowRight, LogOut } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
 
 const DISCORD_CLIENT_ID = process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID;
 const DISCORD_PERMISSIONS = '8'; // Administrator permissions
@@ -26,6 +30,10 @@ export default function Home() {
   const [oauthUrl, setOauthUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  
+  // State for login consent
+  const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [termsChecked, setTermsChecked] = useState(false);
 
   useEffect(() => {
     const redirectUri = window.location.origin;
@@ -87,7 +95,7 @@ export default function Home() {
   }, [isLoggedIn, selectedGuild]);
 
   const handleLogin = () => {
-    if (oauthUrl) {
+    if (oauthUrl && privacyChecked && termsChecked) {
       window.location.href = oauthUrl;
     }
   };
@@ -173,9 +181,52 @@ export default function Home() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col items-center">
-                    <Button onClick={handleLogin} className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold" disabled={!oauthUrl}>
-                        Login com Discord
-                    </Button>
+                     <Popover>
+                        <PopoverTrigger asChild>
+                             <Button className="w-full max-w-xs bg-[#5865F2] hover:bg-[#4752C4] text-white font-bold" disabled={!oauthUrl}>
+                                Login com Discord
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">Termos e Condições</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        Por favor, leia e aceite os termos antes de continuar.
+                                    </p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="terms" onCheckedChange={(checked) => setTermsChecked(Boolean(checked))} />
+                                        <Label htmlFor="terms" className="text-sm font-normal">
+                                            Eu li e concordo com os{' '}
+                                            <Link href="/terms-of-service" className="underline hover:text-primary" target="_blank">
+                                                Termos de Serviço
+                                            </Link>
+                                            .
+                                        </Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox id="privacy" onCheckedChange={(checked) => setPrivacyChecked(Boolean(checked))} />
+                                         <Label htmlFor="privacy" className="text-sm font-normal">
+                                            Eu li e concordo com a{' '}
+                                            <Link href="/privacy-policy" className="underline hover:text-primary" target="_blank">
+                                                Política de Privacidade
+                                            </Link>
+                                            .
+                                        </Label>
+                                    </div>
+                                </div>
+                                 <Button 
+                                    onClick={handleLogin} 
+                                    className="w-full" 
+                                    disabled={!privacyChecked || !termsChecked}
+                                >
+                                    Confirmar e Entrar
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </CardContent>
             </Card>
         </main>
@@ -267,3 +318,5 @@ export default function Home() {
       </main>
   );
 }
+
+    
