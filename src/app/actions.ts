@@ -56,8 +56,19 @@ async function postToBotApi(endpoint: string, body: object) {
 
 
 export async function saveCommandConfigAction(guildId: string, command: CustomCommand) {
-    // Este endpoint já existe no bot.
-    return postToBotApi('config-command', { guildId, command });
+    // Usa o endpoint genérico. A API do bot deve saber como mesclar
+    // o campo customCommands na configuração existente.
+    const payload = {
+        guildId,
+        config: {
+            // Aninha o comando sob a chave 'customCommands'
+            // O bot deve mesclar este objeto no mapa existente.
+            customCommands: {
+                [command.name]: command
+            }
+        }
+    };
+    return postToBotApi('config-generic', payload);
 }
 
 export async function saveChannelConfigAction(guildId: string, config: { mode: string; suggestions: { enabled: boolean; }; reports: { enabled: boolean; }; }) {
