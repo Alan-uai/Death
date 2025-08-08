@@ -38,8 +38,8 @@ export function MessageEditorPanel({
     const [isLoading, setIsLoading] = useState(true);
     
     // States for builders
-    const [embedData, setEmbedData] = useState({});
-    const [containerComponents, setContainerComponents] = useState([]);
+    const [embedData, setEmbedData] = useState<any>({});
+    const [containerComponents, setContainerComponents] = useState<any[]>([]);
 
     const handleSaveClick = () => {
         if (!onSave) return;
@@ -54,15 +54,15 @@ export function MessageEditorPanel({
 
     const loadInitialData = useCallback((data: any) => {
         if (data && Object.keys(data).length > 0) {
-            setMode(data.mode || 'embed');
-            setTextContent(data.textContent || '');
-            if (data.mode === 'embed' && data.embed) {
-                setEmbedData(data.embed);
+            setMode(data.responseType || 'embed');
+            setTextContent(data.response?.content || '');
+            if (data.responseType === 'embed' && data.response?.embed) {
+                setEmbedData(data.response.embed);
             } else {
                 setEmbedData({});
             }
-            if (data.mode === 'container' && data.container) {
-                setContainerComponents(data.container);
+            if (data.responseType === 'container' && data.response?.container) {
+                setContainerComponents(data.response.container);
             } else {
                 setContainerComponents([]);
             }
@@ -71,12 +71,22 @@ export function MessageEditorPanel({
 
     useEffect(() => {
         if (initialData) {
-            loadInitialData(initialData);
+            // Se dados iniciais forem fornecidos, use-os diretamente.
+            const responseData = {
+                responseType: initialData.mode,
+                response: {
+                    content: initialData.textContent,
+                    embed: initialData.embed,
+                    container: initialData.container,
+                },
+            };
+            loadInitialData(responseData);
             setIsLoading(false);
             return;
         }
 
         if (!messageId) {
+            // Se não há messageId nem initialData, é um editor novo.
             setIsLoading(false);
             return;
         }
@@ -87,13 +97,12 @@ export function MessageEditorPanel({
                 const config = await getGuildConfigAction(guildId);
                 const messageConfig = config?.botResponses?.[messageId];
                 if (messageConfig) {
-                    const responseData = {
-                        mode: messageConfig.responseType,
-                        textContent: messageConfig.response?.content,
-                        embed: messageConfig.response?.embed,
-                        container: messageConfig.response?.container
-                    }
-                    loadInitialData(responseData);
+                    loadInitialData(messageConfig);
+                } else {
+                    // Se não há configuração salva, resete para o estado inicial.
+                    setTextContent('');
+                    setEmbedData({});
+                    setContainerComponents([]);
                 }
             } catch (error) {
                 console.error(`Failed to fetch config for message: ${messageId}`, error);

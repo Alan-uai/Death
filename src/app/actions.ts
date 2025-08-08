@@ -71,7 +71,7 @@ export async function saveCommandConfigAction(guildId: string, command: CustomCo
     return postToBotApi('config-generic', payload);
 }
 
-export async function saveChannelConfigAction(guildId: string, config: { mode: string; suggestions: { enabled: boolean; }; reports: { enabled: boolean; }; }) {
+export async function saveChannelConfigAction(guildId: string, config: any) {
     // Usando o endpoint genérico. A API do bot deve esperar { channelManagement: ... }
     const payload = {
         guildId,
@@ -81,6 +81,19 @@ export async function saveChannelConfigAction(guildId: string, config: { mode: s
     };
     return postToBotApi('config-generic', payload);
 }
+
+export async function saveBotResponseAction(guildId: string, messageId: string, responseData: any) {
+    const payload = {
+        guildId,
+        config: {
+            botResponses: {
+                [messageId]: responseData
+            }
+        }
+    };
+    return postToBotApi('config-generic', payload);
+}
+
 
 export async function saveGenericConfigAction(guildId: string, config: object) {
      // Usando o endpoint genérico. A API do bot deve esperar um objeto de configuração aninhado.

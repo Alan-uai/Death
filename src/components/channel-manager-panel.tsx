@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { getGuildConfigAction, saveChannelConfigAction } from '@/app/actions';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserCheck, PartyPopper } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
@@ -18,6 +18,8 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
   const [mode, setMode] = useState<ManagementMode>('slash');
   const [enableSuggestions, setEnableSuggestions] = useState(false);
   const [enableReports, setEnableReports] = useState(false);
+  const [enableWelcome, setEnableWelcome] = useState(false);
+  const [enableVerification, setEnableVerification] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
@@ -31,9 +33,12 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
       try {
         const config = await getGuildConfigAction(guildId);
         if (config && config.channelManagement) {
-          setMode(config.channelManagement.mode || 'slash');
-          setEnableSuggestions(config.channelManagement.suggestions?.enabled || false);
-          setEnableReports(config.channelManagement.reports?.enabled || false);
+          const mgmt = config.channelManagement;
+          setMode(mgmt.mode || 'slash');
+          setEnableSuggestions(mgmt.suggestions?.enabled || false);
+          setEnableReports(mgmt.reports?.enabled || false);
+          setEnableWelcome(mgmt.welcome?.enabled || false);
+          setEnableVerification(mgmt.verification?.enabled || false);
         }
       } catch (error) {
         console.error("Failed to fetch channel management config:", error);
@@ -55,7 +60,9 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
         await saveChannelConfigAction(guildId, {
             mode,
             suggestions: { enabled: enableSuggestions },
-            reports: { enabled: enableReports }
+            reports: { enabled: enableReports },
+            welcome: { enabled: enableWelcome },
+            verification: { enabled: enableVerification },
         });
         toast({
             title: 'Sucesso!',
@@ -114,13 +121,33 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
     )
   }
 
+  const renderChannelSwitch = (
+    id: string,
+    label: string,
+    description: string,
+    icon: React.ElementType,
+    checked: boolean,
+    onCheckedChange: (checked: boolean) => void
+  ) => (
+     <div className="flex items-center justify-between rounded-lg border p-4">
+        <div className="flex items-center gap-4">
+            <icon className="h-6 w-6 text-primary" />
+            <div className="space-y-1">
+                <Label htmlFor={id} className="text-base">{label}</Label>
+                <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+        </div>
+        <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
+    </div>
+  );
+
   return (
     <div className="p-4 md:p-6">
       <Card>
         <CardHeader>
           <CardTitle>Gerenciador de Canais e Comandos</CardTitle>
           <CardDescription>
-            Escolha como o bot deve interagir com o servidor.
+            Escolha como o bot deve interagir com o servidor, ativando ou desativando funcionalidades.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-8">
@@ -153,39 +180,11 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
             <div className="space-y-4 pt-4 border-t">
                  <h3 className="text-lg font-medium">Canais Automatizados</h3>
                  <p className="text-sm text-muted-foreground">Ative para que seu bot crie e gerencie canais para funcionalidades específicas.</p>
-                {/* Suggestions Channel */}
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="suggestions-switch" className="text-base">Canal de Sugestões</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Cria um canal de fórum #sugestoes para a comunidade.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="suggestions-switch"
-                      checked={enableSuggestions}
-                      onCheckedChange={setEnableSuggestions}
-                    />
-                  </div>
-                </div>
+                {renderChannelSwitch("welcome-switch", "Canal de Boas-Vindas", "Cria um canal #boas-vindas para saudar novos membros.", PartyPopper, enableWelcome, setEnableWelcome)}
+                {renderChannelSwitch("verification-switch", "Sistema de Verificação", "Cria um canal #verificacao para os membros se autenticarem.", UserCheck, enableVerification, setEnableVerification)}
+                {renderChannelSwitch("suggestions-switch", "Canal de Sugestões", "Cria um canal de fórum #sugestoes para a comunidade.", Label, enableSuggestions, setEnableSuggestions)}
+                {renderChannelSwitch("reports-switch", "Canal de Denúncias", "Cria um canal #denuncias com um botão para abrir tópicos privados.", Label, enableReports, setEnableReports)}
 
-                {/* Reports Channel */}
-                <div className="flex items-center justify-between rounded-lg border p-4">
-                  <div className="space-y-1">
-                    <Label htmlFor="reports-switch" className="text-base">Canal de Denúncias</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Cria um canal público #denuncias com um botão para abrir tópicos privados.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      id="reports-switch"
-                      checked={enableReports}
-                      onCheckedChange={setEnableReports}
-                    />
-                  </div>
-                </div>
             </div>
           )}
 
