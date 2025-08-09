@@ -2,7 +2,7 @@
 
 import { cache } from 'react';
 import { db } from '@/lib/firebase-admin';
-import type { DiscordChannel, DiscordGuild, DiscordUser } from '@/lib/types';
+import type { DiscordChannel, DiscordGuild, DiscordUser, DiscordRole } from '@/lib/types';
 import type { CustomCommand } from '@/lib/types';
 
 const DISCORD_API_BASE = 'https://discord.com/api/v10';
@@ -207,6 +207,24 @@ export const getGuildChannelsAction = cache(async (
         return [];
     }
 });
+
+export const getGuildRolesAction = cache(async (
+    guildId: string
+  ): Promise<DiscordRole[]> => {
+      if (!BOT_TOKEN) {
+          console.error("DISCORD_BOT_TOKEN is not configured. Cannot fetch roles from API.");
+          return [];
+      }
+      try {
+          const roles = await fetchDiscordApi(`/guilds/${guildId}/roles`, {
+              headers: { Authorization: `Bot ${BOT_TOKEN}` }
+          });
+          return roles;
+      } catch (error) {
+          console.error(`Failed to fetch roles for guild ${guildId} from Discord API:`, error);
+          return [];
+      }
+  });
 
 export const getGuildConfigAction = cache(async (
   guildId: string

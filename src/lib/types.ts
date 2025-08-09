@@ -25,6 +25,17 @@ export const DiscordUserSchema = z.object({
 });
 export type DiscordUser = z.infer<typeof DiscordUserSchema>;
 
+
+// Zod schema for a Discord role
+export const DiscordRoleSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    color: z.number(),
+    managed: z.boolean(),
+  });
+export type DiscordRole = z.infer<typeof DiscordRoleSchema>;
+
+
 // Zod schema for a custom command
 export const CustomCommandSchema = z.object({
   id: z.string().min(1, 'O ID do comando é obrigatório.'),
