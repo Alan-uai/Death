@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -34,9 +33,11 @@ export function SettingsPanel({ channels, guildId }: SettingsPanelProps) {
         if (config && config.featureSettings) {
           setQaChannel(config.featureSettings.qaChannel || 'any');
           setBuildsChannel(config.featureSettings.buildsChannel || 'any');
+        } else if (config === null) {
+          console.warn('SettingsPanel: No existing config found in Firestore. Using default values.');
         }
       } catch (error) {
-        console.error("Failed to fetch feature settings config:", error);
+        console.error("SettingsPanel: Failed to fetch feature settings config:", error);
          toast({
             variant: "destructive",
             title: "Erro ao Carregar",

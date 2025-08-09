@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,7 +8,7 @@ import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 import { getGuildConfigAction, saveChannelConfigAction } from '@/app/actions';
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, UserCheck, PartyPopper } from 'lucide-react';
+import { Loader2, UserCheck, PartyPopper, MessageSquare, ShieldAlert } from 'lucide-react';
 import { Skeleton } from './ui/skeleton';
 
 type ManagementMode = 'slash' | 'channels' | 'both';
@@ -39,13 +38,15 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
           setEnableReports(mgmt.reports?.enabled || false);
           setEnableWelcome(mgmt.welcome?.enabled || false);
           setEnableVerification(mgmt.verification?.enabled || false);
+        } else if (config === null) {
+            console.warn('ChannelManagerPanel: No existing config found in Firestore. Using default values.');
         }
       } catch (error) {
-        console.error("Failed to fetch channel management config:", error);
+        console.error("ChannelManagerPanel: Failed to fetch channel management config:", error);
         toast({
           variant: "destructive",
           title: "Erro ao Carregar",
-          description: "Não foi possível buscar as configurações de canal."
+          description: "Não foi possível buscar as configurações de canal. Verifique o console para mais detalhes."
         })
       } finally {
         setIsLoading(false);
@@ -182,8 +183,8 @@ export function ChannelManagerPanel({ guildId }: { guildId: string }) {
                  <p className="text-sm text-muted-foreground">Ative para que seu bot crie e gerencie canais para funcionalidades específicas.</p>
                 {renderChannelSwitch("welcome-switch", "Canal de Boas-Vindas", "Cria um canal #boas-vindas para saudar novos membros.", PartyPopper, enableWelcome, setEnableWelcome)}
                 {renderChannelSwitch("verification-switch", "Sistema de Verificação", "Cria um canal #verificacao para os membros se autenticarem.", UserCheck, enableVerification, setEnableVerification)}
-                {renderChannelSwitch("suggestions-switch", "Canal de Sugestões", "Cria um canal de fórum #sugestoes para a comunidade.", Label, enableSuggestions, setEnableSuggestions)}
-                {renderChannelSwitch("reports-switch", "Canal de Denúncias", "Cria um canal #denuncias com um botão para abrir tópicos privados.", Label, enableReports, setEnableReports)}
+                {renderChannelSwitch("suggestions-switch", "Canal de Sugestões", "Cria um canal de fórum #sugestoes para a comunidade.", MessageSquare, enableSuggestions, setEnableSuggestions)}
+                {renderChannelSwitch("reports-switch", "Canal de Denúncias", "Cria um canal #denuncias com um botão para abrir tópicos privados.", ShieldAlert, enableReports, setEnableReports)}
 
             </div>
           )}

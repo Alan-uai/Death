@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -44,9 +43,12 @@ export function BotPersonalityPanel({ guildId }: { guildId: string }) {
             setCustomPrompt(config.botPersonality.customPrompt || personalityPrompts[savedPersonality]);
           } else {
              setCustomPrompt(personalityPrompts['amigavel']);
+             if (config === null) {
+                console.warn('BotPersonalityPanel: No existing config found in Firestore. Using default values.');
+             }
           }
         } catch (error) {
-          console.error("Failed to fetch bot personality config:", error);
+          console.error("BotPersonalityPanel: Failed to fetch bot personality config:", error);
           toast({
             variant: "destructive",
             title: "Erro ao Carregar",
