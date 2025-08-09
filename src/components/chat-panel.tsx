@@ -7,9 +7,12 @@ import { ChatInput } from '@/components/chat-input';
 import { Hash } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DiscordChannel } from '@/lib/types';
+import { getGuildConfigAction } from '@/app/actions';
+import { simulateChatResponse } from '@/ai/flows/chat-simulation-flow';
 
 interface ChatPanelProps {
   channels: DiscordChannel[];
+  guildId: string;
 }
 
 const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
@@ -18,13 +21,13 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
     username: 'Death',
     embed: {
       title: 'Bem-vindo ao Simulador de Chat!',
-      description: 'Selecione um canal à esquerda para simular conversas. As respostas do bot são baseadas nas configurações salvas no Firestore. A execução real acontece no seu cliente de bot separado.',
+      description: 'Selecione um canal à esquerda para simular conversas. As respostas do bot são geradas por uma IA que considera as configurações do seu servidor.',
     },
   },
   'q-and-a': {
     author: 'bot',
     username: 'Death',
-    text: 'Este é o canal de Perguntas e Respostas. O bot responderá a menções aqui, com base nas configurações que você definir.',
+    text: 'Este é o canal de Perguntas e Respostas. O bot responderá a menções aqui, com base nas configurações que você definir e no conhecimento da Wiki.',
   },
   'suggestions': {
     author: 'bot',
@@ -40,14 +43,24 @@ const welcomeMessages: Record<string, Omit<Message, 'timestamp' | 'id'>> = {
 
 const getTimestamp = () => new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-export function ChatPanel({ channels }: ChatPanelProps) {
+export function ChatPanel({ channels, guildId }: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeChannel, setActiveChannel] = useState<DiscordChannel | null>(null);
+  const [guildConfig, setGuildConfig] = useState<any | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Includes text (0) and forum (15) channels
   const textAndForumChannels = channels.filter(c => c.type === 0 || c.type === 15);
+
+  useEffect(() => {
+     const fetchConfig = async () => {
+        const config = await getGuildConfigAction(guildId);
+        setGuildConfig(config);
+     };
+     fetchConfig();
+  }, [guildId]);
+
 
   useEffect(() => {
     if (!activeChannel && textAndForumChannels.length > 0) {
@@ -58,9 +71,10 @@ export function ChatPanel({ channels }: ChatPanelProps) {
   useEffect(() => {
     if (activeChannel) {
         let welcomeMessageKey = 'default';
-        if (activeChannel.name.includes('q-and-a')) welcomeMessageKey = 'q-and-a';
-        if (activeChannel.name.includes('sugest')) welcomeMessageKey = 'suggestions';
-        if (activeChannel.name.includes('denuncia')) welcomeMessageKey = 'reports';
+        const channelNameLower = activeChannel.name.toLowerCase();
+        if (channelNameLower.includes('q-and-a') || channelNameLower.includes('perguntas')) welcomeMessageKey = 'q-and-a';
+        if (channelNameLower.includes('sugest')) welcomeMessageKey = 'suggestions';
+        if (channelNameLower.includes('denuncia')) welcomeMessageKey = 'reports';
 
         const welcomeMessage: Message = {
           ...(welcomeMessages[welcomeMessageKey] || welcomeMessages.default),
@@ -97,18 +111,35 @@ export function ChatPanel({ channels }: ChatPanelProps) {
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
-    // Simulate bot thinking
-    setTimeout(() => {
+    try {
+        const botResponseText = await simulateChatResponse({
+            message: input,
+            channelName: activeChannel.name,
+            guildConfig: guildConfig,
+        });
+
         const botResponse: Message = {
             id: (Date.now() + 1).toString(),
             author: 'bot',
             username: 'Death',
             timestamp: getTimestamp(),
-            text: `Simulação: O bot processaria a mensagem "${input}" no canal #${activeChannel.name}. A lógica real é executada pelo seu bot separado, que lê as configurações do Firestore.`,
+            text: botResponseText,
         };
         setMessages((prev) => [...prev, botResponse]);
+
+    } catch (error) {
+         console.error("Error simulating chat response:", error);
+         const errorResponse: Message = {
+            id: (Date.now() + 1).toString(),
+            author: 'bot',
+            username: 'Death',
+            timestamp: getTimestamp(),
+            text: "Desculpe, ocorreu um erro ao tentar simular a resposta. Verifique o console para mais detalhes.",
+        };
+        setMessages((prev) => [...prev, errorResponse]);
+    } finally {
         setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (

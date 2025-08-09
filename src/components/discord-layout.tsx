@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Bot, Cog, MessageSquare, Menu, Landmark, Edit, Rss } from 'lucide-react';
+import { ArrowLeft, Bot, Cog, MessageSquare, Menu, Landmark, Edit, Rss, HelpCircle } from 'lucide-react';
 import { ChatPanel } from '@/components/chat-panel';
 import { cn } from '@/lib/utils';
 import {
@@ -20,9 +20,10 @@ import { ChannelManagerPanel } from './channel-manager-panel';
 import { BotPersonalityPanel } from './bot-personality-panel';
 import { Sheet, SheetContent, SheetTrigger } from './ui/sheet';
 import { BotResponsesPanel } from './bot-responses-panel';
+import { WikiPanel } from './wiki-panel';
 
 
-type Panel = 'chat' | 'builder' | 'channels' | 'personality' | 'settings' | 'responses';
+type Panel = 'chat' | 'builder' | 'channels' | 'personality' | 'settings' | 'responses' | 'wiki';
 
 interface DiscordLayoutProps {
     guild: DiscordGuild;
@@ -34,6 +35,7 @@ const navItems = [
     { id: 'builder', label: 'Editor de Comandos', icon: Edit },
     { id: 'responses', label: 'Respostas do Bot', icon: Rss },
     { id: 'channels', label: 'Gerenciador de Canais', icon: Landmark },
+    { id: 'wiki', label: 'Gerenciador da Wiki', icon: HelpCircle },
     { id: 'personality', label: 'Personalidade do Bot', icon: Bot },
     { id: 'settings', label: 'Configurações Gerais', icon: Cog },
 ];
@@ -44,10 +46,11 @@ export function DiscordLayout({ guild, onGoBack }: DiscordLayoutProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const panelComponents: Record<Panel, React.FC<any>> = {
-    chat: ChatPanel,
+    chat: (props) => <ChatPanel {...props} guildId={guild.id} />,
     builder: (props) => <MessageBuilderPanel {...props} guildId={guild.id} />,
     responses: (props) => <BotResponsesPanel {...props} guildId={guild.id} />,
     channels: (props) => <ChannelManagerPanel {...props} guildId={guild.id} />,
+    wiki: (props) => <WikiPanel {...props} guildId={guild.id} />,
     personality: (props) => <BotPersonalityPanel {...props} guildId={guild.id} />,
     settings: (props) => <SettingsPanel {...props} guildId={guild.id} />,
   };

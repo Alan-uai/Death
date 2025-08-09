@@ -104,6 +104,16 @@ export async function saveGenericConfigAction(guildId: string, config: object) {
     return postToBotApi('config-generic', payload);
 }
 
+export async function saveWikiAction(guildId: string, wikiData: any) {
+    const payload = {
+        guildId,
+        config: {
+            wikiData,
+        }
+    };
+    return postToBotApi('config-generic', payload);
+}
+
 export async function setOwnerAction(guildId: string, userId: string) {
     // Usa o endpoint genérico para definir o ownerId.
     const payload = {
